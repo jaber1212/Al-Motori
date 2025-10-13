@@ -25,13 +25,13 @@ jobs:
 
       - name: Deploy code to cPanel
         run: |
-          rsync -az --delete \
-            -e "ssh -p ${{ secrets.PORT }}" \
-            --exclude=".git" \
-            --exclude=".github" \
-            ./ \
-            ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
-
+            rsync -az --delete \
+              -e "ssh -p ${{ secrets.PORT }} -o StrictHostKeyChecking=no" \
+              --exclude=".git" \
+              --exclude=".github" \
+              ./ \
+              ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
+        
       - name: Restart Passenger
         run: |
           ssh -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "mkdir -p /home/artlinew/Motori/tmp && touch /home/artlinew/Motori/tmp/restart.txt"
