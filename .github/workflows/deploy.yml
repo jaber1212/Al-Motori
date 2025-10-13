@@ -1,0 +1,37 @@
+name: Deploy Django to cPanel
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.PORT }} -H ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy code to cPanel
+        run: |
+          rsync -az --delete \
+            -e "ssh -p ${{ secrets.PORT }}" \
+            --exclude=".git" \
+            --exclude=".github" \
+            ./ \
+            ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
+
+      - name: Restart Passenger
+        run: |
+          ssh -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "mkdir -p /home/artlinew/Motori/tmp && touch /home/artlinew/Motori/tmp/restart.txt"

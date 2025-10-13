@@ -57,7 +57,7 @@ JAZZMIN_SETTINGS = {
     ],
 
 }
-
+# 
 EDITOR_MAX_ADS = 200     # per staff/editor user
 EDITOR_MAX_IMAGES = 12  
 REST_FRAMEWORK = {
@@ -112,10 +112,10 @@ WSGI_APPLICATION = 'AlMotori.wsgi.application'
 
 
 
-
+# 
 # settings.py
 import os
-
+# 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
