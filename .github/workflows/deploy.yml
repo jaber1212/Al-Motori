@@ -16,18 +16,18 @@ jobs:
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.CPANEL_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
 
       - name: Copy files to cPanel via SCP
         run: |
-          scp -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.CPANEL_PORT }} \
-            ./* ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
+          scp -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} \
+            ./* ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
 
       - name: SSH and Run Django Setup
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "
             set -e
 
             # Navigate to project directory
