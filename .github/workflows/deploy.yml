@@ -30,22 +30,22 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "
             set -e
 
-            # Go to project directory
+            # Navigate to project directory
             cd /home/artlinew/Motori/
 
-            # Activate cPanel virtual environment
+            # Activate virtualenv (adjust Python version if needed)
             source /home/artlinew/virtualenv/Motori/3.11/bin/activate
 
-            # Install Python dependencies
+            # Install dependencies
             pip install -r requirements.txt
 
-            # Apply Django migrations
+            # Run Django migrations
             python manage.py makemigrations
             python manage.py migrate --noinput
 
             # Collect static files
             python manage.py collectstatic --noinput
 
-            # Restart Passenger for Django
+            # Restart Passenger (for Django on cPanel)
             mkdir -p tmp && touch tmp/restart.txt
           "
