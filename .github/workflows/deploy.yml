@@ -8,75 +8,44 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+# 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+# 
       - name: Setup SSH Key
         run: |
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          # write private key exactly as in the secret (avoid newline corruption)
-          printf "%s" "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # preload host key (avoid prompt)
           ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Ensure remote folder
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} \
-            ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} \
-            "mkdir -p /home/${{ secrets.USER }}/Motori"
 
       - name: Copy files to cPanel via SCP
         run: |
           scp -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} \
-            ./* ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/${{ secrets.USER }}/Motori/
+            ./* ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
 
       - name: SSH and Run Django Setup
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} \
-            ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "bash -se" << 'EOF'
-          set -euo pipefail
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "
+            set -e
 
-          APP_DIR="/home/$USER/Motori"
-          cd "$APP_DIR"
+            # Navigate to project directory
+            cd /home/artlinew/Motori/
 
-          echo "[1/5] Activate virtualenv"
-          # Try common cPanel paths, otherwise create our own stable venv
-          VENV_ACTIVATE=""
-          for f in "$HOME"/virtualenv/Motori/*/bin/activate "$HOME"/virtualenvs/Motori/*/bin/activate; do
-            [ -f "$f" ] && VENV_ACTIVATE="$f" && break
-          done
+            # Activate virtualenv (adjust Python version if needed)
+            source /home/artlinew/virtualenv/Motori/3.11/bin/activate
 
-          if [ -n "$VENV_ACTIVATE" ]; then
-            . "$VENV_ACTIVATE"
-          else
-            # Fallback: create version-agnostic venv
-            mkdir -p "$HOME/venvs"
-            if [ ! -f "$HOME/venvs/Motori-py/bin/activate" ]; then
-              python3 -m venv "$HOME/venvs/Motori-py"
-            fi
-            . "$HOME/venvs/Motori-py/bin/activate"
-          fi
-
-          echo "[2/5] Install requirements"
-          python -m pip install --upgrade pip wheel setuptools
-          if [ -f requirements.txt ]; then
+            # Install dependencies
             pip install -r requirements.txt
-          fi
 
-          echo "[3/5] Django migrations"
-          python manage.py makemigrations
-          python manage.py migrate --noinput
+            # Run Django migrations
+            python manage.py makemigrations
+            python manage.py migrate --noinput
 
-          echo "[4/5] Collect static"
-          python manage.py collectstatic --noinput
+            # Collect static files
+            python manage.py collectstatic --noinput
 
-          echo "[5/5] Restart Passenger"
-          mkdir -p tmp
-          touch tmp/restart.txt
-
-          echo "Deploy OK"
-          EOF
+            # Restart Passenger (for Django on cPanel)
+            mkdir -p tmp && touch tmp/restart.txt
+          "
