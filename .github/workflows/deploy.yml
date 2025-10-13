@@ -1,37 +1,51 @@
-name: Deploy Django to cPanel
+name: SSH Auto Deployment to cPanel - Motori
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Add server to known_hosts
+      - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p ${{ secrets.PORT }} -H ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
+          echo "${{ secrets.CPANEL_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy code to cPanel
+      - name: Copy files to cPanel via SCP
         run: |
-            rsync -az --delete \
-              -e "ssh -p ${{ secrets.PORT }} -o StrictHostKeyChecking=no" \
-              --exclude=".git" \
-              --exclude=".github" \
-              ./ \
-              ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
-        
-      - name: Restart Passenger
+          scp -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.CPANEL_PORT }} \
+            ./* ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
+
+      - name: SSH and Run Django Setup
         run: |
-          ssh -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "mkdir -p /home/artlinew/Motori/tmp && touch /home/artlinew/Motori/tmp/restart.txt"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.CPANEL_PORT }} ${{ secrets.CPANEL_USER }}@${{ secrets.CPANEL_HOST }} "
+            set -e
+
+            # Go to project directory
+            cd /home/artlinew/Motori/
+
+            # Activate cPanel virtual environment
+            source /home/artlinew/virtualenv/Motori/3.11/bin/activate
+
+            # Install Python dependencies
+            pip install -r requirements.txt
+
+            # Apply Django migrations
+            python manage.py makemigrations
+            python manage.py migrate --noinput
+
+            # Collect static files
+            python manage.py collectstatic --noinput
+
+            # Restart Passenger for Django
+            mkdir -p tmp && touch tmp/restart.txt
+          "
