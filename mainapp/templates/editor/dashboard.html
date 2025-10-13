@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Overview</h1>
+<div class="dashboard-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+  <div class="card">Total Ads: <strong>{{ data.total_ads }}</strong></div>
+  <div class="card">Draft: <strong>{{ data.draft_ads }}</strong></div>
+  <div class="card">Published: <strong>{{ data.published_ads }}</strong></div>
+  <div class="card">Last 7 Days: <strong>{{ data.ads_last_7d }}</strong></div>
+</div>
+<h2 style="margin-top:24px;">Recent Ads</h2>
+<table class="adminlist">
+  <thead><tr><th>Code</th><th>Title</th><th>Status</th><th>Created</th></tr></thead>
+  <tbody>
+  {% for ad in recent %}
+    <tr>
+      <td><a href="../mainapp/ad/{{ ad.id }}/change/">{{ ad.code }}</a></td>
+      <td>{{ ad.title }}</td>
+      <td>{{ ad.status }}</td>
+      <td>{{ ad.created_at }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">No ads.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
