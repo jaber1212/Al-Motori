@@ -24,28 +24,46 @@ jobs:
         run: |
           scp -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} \
             ./* ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
-
-      - name: SSH and Run Django Setup
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "
-            set -e
-
-            # Navigate to project directory
-            cd /home/artlinew/Motori/
-
-            # Activate virtualenv (adjust Python version if needed)
-            source /home/artlinew/virtualenv/Motori/3.11/bin/activate
-
-            # Install dependencies
-            pip install -r requirements.txt
-
-            # Run Django migrations
-            python manage.py makemigrations
-            python manage.py migrate --noinput
-
-            # Collect static files
-            python manage.py collectstatic --noinput
-
-            # Restart Passenger (for Django on cPanel)
-            mkdir -p tmp && touch tmp/restart.txt
-          "
+            - name: SSH and Run Django Setup
+            run: |
+              ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} \
+                ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "bash -se" << 'EOF'
+              set -euo pipefail
+          
+              APP_DIR="/home/$USER/Motori"
+              cd "$APP_DIR"
+          
+              echo "[1/5] Activate virtualenv (auto-detect)"
+              VENV_ACTIVATE=""
+              for f in "$HOME"/virtualenv/Motori/*/bin/activate "$HOME"/virtualenvs/Motori/*/bin/activate; do
+                [ -f "$f" ] && VENV_ACTIVATE="$f" && break
+              done
+          
+              if [ -n "$VENV_ACTIVATE" ]; then
+                . "$VENV_ACTIVATE"
+                echo "Using cPanel venv: $VENV_ACTIVATE"
+              else
+                echo "cPanel venv not found; creating fallback at ~/venvs/Motori-py"
+                mkdir -p "$HOME/venvs"
+                if [ ! -f "$HOME/venvs/Motori-py/bin/activate" ]; then
+                  python3 -m venv "$HOME/venvs/Motori-py"
+                fi
+                . "$HOME/venvs/Motori-py/bin/activate"
+              fi
+          
+              echo "[2/5] Install requirements"
+              python -m pip install --upgrade pip wheel setuptools
+              [ -f requirements.txt ] && pip install -r requirements.txt
+          
+              echo "[3/5] Django migrations"
+              python manage.py makemigrations
+              python manage.py migrate --noinput
+          
+              echo "[4/5] Collect static"
+              python manage.py collectstatic --noinput
+          
+              echo "[5/5] Restart Passenger"
+              mkdir -p tmp && touch tmp/restart.txt
+              echo "Deploy OK"
+              EOF
+          
