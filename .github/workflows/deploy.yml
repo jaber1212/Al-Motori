@@ -24,3 +24,4 @@ jobs:
         run: |
           scp -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} \
             ./* ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
+# 
