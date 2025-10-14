@@ -5,7 +5,7 @@ class Command(BaseCommand):
     help = "Seed 'cars' category and common field definitions"
 
     def handle(self, *args, **kwargs):
-        cars, _ = AdCategory.objects.get_or_create(key="cars", defaults={"name_en":"Cars","name_ar":"سيارات"})
+        cars, _ = AdCategory.objects.get_or_create(key="cars", defaults={"name_en":"Cars","name_ar":"cars"})
         FT = {ft.key: ft for ft in FieldType.objects.all()}
 
         defs = [
