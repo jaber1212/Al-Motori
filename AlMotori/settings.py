@@ -23,10 +23,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-xh-_=4%%$#c5@vv+i-ad+57j##$lcrp%)!-l6aknp_h*4%-z-2'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
 
+ALLOWED_HOSTS = ["motori.a.alce-qa.com", "www.motori.a.alce-qa.com"]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://motori.a.alce-qa.com",
+    "https://www.motori.a.alce-qa.com",
+]
 
 # Application definition
 
