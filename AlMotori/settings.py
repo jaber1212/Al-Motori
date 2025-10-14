@@ -189,9 +189,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Static files (CSS, JS, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'
