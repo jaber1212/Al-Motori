@@ -1,4 +1,4 @@
-Django>=5.2,<6.0
+Django==4.2.25
 djangorestframework>=3.16
 Pillow>=11.0
 
