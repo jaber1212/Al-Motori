@@ -34,8 +34,24 @@ def _save_upload(file_obj, subdir="ads"):
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, ErrorDetail
 from rest_framework.authtoken.models import Token
+
+def first_error_message(detail):
+    """
+    Recursively extract the first human-readable error message
+    from DRF ValidationError.detail (dict/list/ErrorDetail/str).
+    """
+    if isinstance(detail, dict):
+        # Take the first field's errors
+        return first_error_message(next(iter(detail.values())))
+    if isinstance(detail, (list, tuple)):
+        # Take the first item in the list
+        return first_error_message(detail[0]) if detail else "Invalid input."
+    if isinstance(detail, ErrorDetail):
+        return str(detail)
+    # Fallback (string or unknown type)
+    return str(detail)
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -45,12 +61,10 @@ class RegisterView(APIView):
         try:
             s.is_valid(raise_exception=True)
         except ValidationError as e:
-            # e.detail is an OrderedDict like {"email": ["Enter a valid email address."]}
-            first_error = next(iter(e.detail.values()))[0] if isinstance(e.detail, dict) else str(e.detail)
-            return Response({
-                "status": False,
-                "message": first_error
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"status": False, "message": first_error_message(e.detail)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         user = s.save()
         token, _ = Token.objects.get_or_create(user=user)
@@ -58,8 +72,11 @@ class RegisterView(APIView):
             "status": True,
             "message": "Registered. OTP sent.",
             "token": token.key,
-            "profile": ProfileSerializer(user).data
+            # If your serializer is for Profile, pass user.profile (not user)
+            "profile": ProfileSerializer(user.profile).data
         }, status=status.HTTP_201_CREATED)
+
+
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
