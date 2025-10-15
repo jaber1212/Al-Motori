@@ -3,6 +3,63 @@ from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from .models import Profile
 import random
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.exceptions import ErrorDetail
+from django.core.exceptions import ValidationError as DjangoValidationError
+
+# ---- unified response helpers (only this part changed) ----
+def success_response(message, data=None):
+    return Response({"status": True, "message": message, "data": data or {}})
+
+def _normalize_error(obj):
+    # str/bytes
+    if isinstance(obj, (str, bytes)):
+        return obj.decode() if isinstance(obj, bytes) else obj
+
+    # DRF ErrorDetail
+    if isinstance(obj, ErrorDetail):
+        return str(obj)
+
+    # DRF or Django ValidationError
+    if isinstance(obj, (serializers.ValidationError, DjangoValidationError)):
+        # DRF ValidationError has .detail; Django has .message_dict / .messages
+        detail = getattr(obj, "detail", None)
+        if detail is not None:
+            return _normalize_error(detail)
+        if hasattr(obj, "message_dict"):
+            return _normalize_error(obj.message_dict)
+        if hasattr(obj, "messages"):
+            return _normalize_error(obj.messages)
+        return str(obj)
+
+    # dict -> first message per key (recursively normalized)
+    if isinstance(obj, dict):
+        out = {}
+        for k, v in obj.items():
+            if isinstance(v, list) and v:
+                out[k] = _normalize_error(v[0])
+            else:
+                out[k] = _normalize_error(v)
+        return out
+
+    # list/tuple -> first item normalized
+    if isinstance(obj, (list, tuple)) and obj:
+        return _normalize_error(obj[0])
+
+    # generic Exception
+    if isinstance(obj, Exception):
+        return str(obj)
+
+    # fallback
+    return obj
+
+def error_response(message):
+    return Response(
+        {"status": False, "message": _normalize_error(message)},
+        status=status.HTTP_400_BAD_REQUEST
+    )
+# -----------------------------------------------------------
 
 def generate_otp():
     return f"{random.randint(100000, 999999)}"

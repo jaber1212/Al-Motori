@@ -96,7 +96,8 @@ class LoginView(APIView):
                     return Response({"detail": "Invalid credentials."}, status=400)
                 user = u
             except User.DoesNotExist:
-                return Response({"detail": "Invalid credentials."}, status=400)
+                return error_
+                Response({"detail": "Invalid credentials."}, status=400)
 
         token, _ = Token.objects.get_or_create(user=user)
         return Response({
