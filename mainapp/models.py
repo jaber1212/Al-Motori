@@ -6,10 +6,12 @@ from django.contrib.auth.models import User
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
-    name = models.CharField(max_length=120)                  # display name
-    phone = models.CharField(max_length=20, unique=True)     # unique phone for login
+    name = models.CharField(max_length=120)
+    phone = models.CharField(max_length=20, unique=True)
+    email = models.EmailField(unique=True)  # ✅ added
+    
     is_verified = models.BooleanField(default=False)
-    op_code = models.CharField(max_length=6, blank=True, null=True)  # last OTP code
+    op_code = models.CharField(max_length=6, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

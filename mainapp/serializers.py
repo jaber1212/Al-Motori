@@ -10,6 +10,7 @@ def generate_otp():
 class RegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=120)
     phone = serializers.CharField(max_length=20)
+    email = serializers.EmailField()  # ✅ added
     password = serializers.CharField(write_only=True, min_length=6)
 
     def validate_phone(self, v):
@@ -17,21 +18,36 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError("Phone already registered.")
         return v
 
+    def validate_email(self, v):
+        if Profile.objects.filter(email=v).exists():
+            raise serializers.ValidationError("Email already registered.")
+        return v
+
     def create(self, validated):
         name = validated["name"]
         phone = validated["phone"]
+        email = validated["email"]
         password = validated["password"]
 
-        # Use phone as username for simplicity
         user = User.objects.create(
             username=phone,
             first_name=name,
+            email=email,  # ✅ store email in User too
             password=make_password(password)
         )
+
         otp = generate_otp()
-        Profile.objects.create(user=user, name=name, phone=phone, op_code=otp, is_verified=False)
-        # TODO: send OTP via SMS provider here (stub)
+        Profile.objects.create(
+            user=user,
+            name=name,
+            phone=phone,
+            email=email,  # ✅ added
+            op_code=otp,
+            is_verified=False
+        )
+        # TODO: send OTP via SMS or email here
         return user
+
 
 class LoginSerializer(serializers.Serializer):
     phone = serializers.CharField()

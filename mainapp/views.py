@@ -78,7 +78,14 @@ class MeProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        return Response(ProfileSerializer(request.user).data)
+        token, _ = Token.objects.get_or_create(user=request.user)
+
+        return Response({
+            "status": True,
+            "message": "Logged in.",
+            "token": token.key,
+
+            "profile":ProfileSerializer(request.user).data})
 
     def patch(self, request):
         s = ProfileUpdateSerializer(data=request.data)
