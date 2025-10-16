@@ -684,15 +684,18 @@ class AdFormView(APIView):
             payload.pop("video", None)
 
         # CREATE
+     # CREATE
         if not ad_id:
-            # category required for create
             if not payload.get("category"):
                 return Response({"status": False, "message": "category is required"}, status=400)
 
-            # Validate + save (core + dynamic)
-            s = AdCreateSerializer(data=payload, context={"request": request})
-            s.is_valid(raise_exception=True)
-            ad = s.save()  # owner taken from request.user by serializer? If not, patch:
+            try:
+                s = AdCreateSerializer(data=payload, context={"request": request})
+                s.is_valid(raise_exception=True)
+            except ValidationError as e:
+                return Response({"status": False, "message": first_error_message(e.detail)}, status=400)
+
+            ad = s.save()
             if not ad.owner_id:
                 ad.owner = user
                 ad.save(update_fields=["owner"])
@@ -700,9 +703,12 @@ class AdFormView(APIView):
         # EDIT
         else:
             ad = get_object_or_404(Ad, id=ad_id, owner=user)
-            s = AdUpdateSerializer(data=payload, context={"ad": ad})
-            s.is_valid(raise_exception=True)
-            s.update(ad, s.validated_data)
+            try:
+                s = AdUpdateSerializer(data=payload, context={"ad": ad})
+                s.is_valid(raise_exception=True)
+                s.update(ad, s.validated_data)
+            except ValidationError as e:
+                return Response({"status": False, "message": first_error_message(e.detail)}, status=400)
 
         # ----- media handling -----
         MAX_IMAGES = 12
@@ -737,3 +743,14 @@ class AdFormView(APIView):
                 AdMedia.objects.create(ad=ad, kind=AdMedia.VIDEO, url=v, order_index=0)
 
         return Response({"status": True, "message": "Saved", "data": AdDetailSerializer(ad).data}, status=200)
+
+
+
+def first_error_message(detail):
+    if isinstance(detail, dict):
+        return first_error_message(next(iter(detail.values())))
+    if isinstance(detail, (list, tuple)):
+        return first_error_message(detail[0]) if detail else "Invalid input."
+    if isinstance(detail, ErrorDetail):
+        return str(detail)
+    return str(detail)
