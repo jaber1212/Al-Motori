@@ -345,19 +345,41 @@ class UpdateAdView(APIView):
                 AdMedia.objects.create(ad=ad, kind=AdMedia.VIDEO, url=v, order_index=0)
 
         return ok("Ad updated successfully")
+from rest_framework.views import APIView
+from rest_framework import permissions
+from rest_framework.authtoken.models import Token
+from .models import Ad
+from .serializers import AdDetailSerializer
+from .serializers import error_response, success_response  # your custom response helpers
 
 class MyAdsListView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    def get(self, request):
-        qs = (Ad.objects
-              .filter(owner=request.user)
-              .order_by("-created_at")
-              .prefetch_related("values__field","media"))
-        # no pagination? if you want, fine—else keep paginator
-        paginator = PageNumberPagination(); paginator.page_size = 20
-        page = paginator.paginate_queryset(qs, request)
-        data = AdDetailSerializer(page, many=True).data
-        return ok("Ads fetched", data=data)
+    permission_classes = [permissions.AllowAny]  # since we authenticate manually
+
+    def post(self, request):
+        # 1️⃣ Read token from body
+        token_key = request.data.get("token")
+
+        if not token_key:
+            return error_response("Token is required")
+
+        # 2️⃣ Verify token and get user
+        try:
+            token = Token.objects.get(key=token_key)
+            user = token.user
+        except Token.DoesNotExist:
+            return error_response("Invalid or expired token")
+
+        # 3️⃣ Get all ads for this user
+        ads = (
+            Ad.objects
+            .filter(owner=user)
+            .order_by("-created_at")
+            .prefetch_related("values__field", "media")
+        )
+
+        # 4️⃣ Serialize and return
+        serializer = AdDetailSerializer(ads, many=True)
+        return success_response("Ads fetched", data=serializer.data)
 
 class MyAdsByTokenView(APIView):
     permission_classes = [permissions.AllowAny]
