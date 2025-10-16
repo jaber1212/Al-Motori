@@ -462,36 +462,97 @@ def fail(message="Failed", *, errors=None, status_code=http_status.HTTP_400_BAD_
 
 
 
-
+from django.shortcuts import get_object_or_404
+from django.db.models import Prefetch
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
-from django.shortcuts import get_object_or_404
-from django.db.models import Prefetch
 from rest_framework.authtoken.models import Token
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
-from .models import AdCategory, FieldDefinition, Ad, AdFieldValue
-from .serializers import PublicFieldSerializer
+from .models import AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia
+from .serializers import (
+    PublicFieldSerializer,  # from your serializers.py (the schema field serializer)
+    AdCreateSerializer, AdUpdateSerializer, AdDetailSerializer
+)
 
-class AdFormSchemaView(APIView):
+# ---------- small helpers ----------
+
+def _auth_user_from_request(request):
     """
-    GET /api/ads/form-schema?category=<key>&locale=<en|ar>[&ad_id=..|&ad_code=..]
-    - If ad_id/ad_code is provided, we prefill 'value' for core + dynamic fields.
-    - Requires Authorization: Token <key> for edit mode (to ensure ownership).
+    Try Authorization header first: 'Token <key>'.
+    Fallback to ?token= or body['token'].
     """
-    permission_classes = [permissions.AllowAny]
-
-    def _get_user_from_auth(self, request):
-        # Expect 'Authorization: Token <token>'
-        auth = request.headers.get("Authorization") or ""
-        if auth.lower().startswith("token "):
-            key = auth.split(" ", 1)[1].strip()
-            try:
-                return Token.objects.get(key=key).user
-            except Token.DoesNotExist:
-                return None
+    auth = request.headers.get("Authorization") or ""
+    token_key = None
+    if auth.lower().startswith("token "):
+        token_key = auth.split(" ", 1)[1].strip()
+    if not token_key:
+        token_key = request.query_params.get("token") or request.data.get("token")
+    if not token_key:
+        return None
+    try:
+        return Token.objects.get(key=token_key).user
+    except Token.DoesNotExist:
         return None
 
+def _localize(item, locale, en_key, ar_key):
+    if locale == "ar":
+        return (item.get(ar_key) or item.get(en_key) or "").strip()
+    return (item.get(en_key) or item.get(ar_key) or "").strip()
+
+def _parse_values_field(payload):
+    """
+    'values' may arrive as JSON string (multipart) or dict (JSON).
+    Return dict or fail.
+    """
+    v = payload.get("values")
+    if isinstance(v, dict) or v is None:
+        return v or {}
+    if isinstance(v, str):
+        import json
+        try:
+            return json.loads(v)
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON in 'values'")
+    raise ValueError("'values' must be a JSON object")
+
+def _extract_files(request):
+    """
+    Support both images[]/images and video in multipart.
+    Return (image_files:list, video_file|None)
+    """
+    if not hasattr(request, "FILES"):
+        return [], None
+    images = (
+        request.FILES.getlist("images")
+        or request.FILES.getlist("images[]")
+        or ([request.FILES.get("images")] if request.FILES.get("images") else [])
+    )
+    video = request.FILES.get("video")
+    return images, video
+
+# You already have _save_upload(file_obj, subdir) in your file. Reuse it.
+
+
+class AdFormView(APIView):
+    """
+    GET  /api/ads/form?category=<key>&locale=<en|ar>&token=[opt]&ad_id=[opt]
+      - If token + ad_id are present and user owns the ad -> returns prefilled 'value' per field (edit mode)
+      - Else returns blank schema (create mode)
+
+    POST /api/ads/form    (JSON or multipart)
+      - Body must include token (header or body/query)
+      - If body has ad_id -> EDIT that ad
+      - Else -> CREATE new ad
+      - Core fields: title, price, city
+      - Dynamic fields: values = { "<fieldKey>": <value>, ... }
+      - Optional media: images[] and video (multipart) OR images:[urls], video:"url" in JSON
+    """
+    permission_classes = [permissions.AllowAny]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    # ---------- GET: schema (with optional prefill) ----------
     def get(self, request):
         category_key = request.query_params.get("category")
         if not category_key:
@@ -501,29 +562,22 @@ class AdFormSchemaView(APIView):
         if locale not in ("en", "ar"):
             locale = "en"
 
-        # Optional edit target
-        ad_id   = request.query_params.get("ad_id")
-        ad_code = request.query_params.get("ad_code")
+        ad_id = request.query_params.get("ad_id")
+        user = _auth_user_from_request(request)
 
         cat = get_object_or_404(AdCategory, key=category_key)
 
-        # 1) Base: dynamic field list
+        # Dynamic fields
         fqs = (FieldDefinition.objects
                .filter(category=cat)
                .select_related("type")
                .order_by("order_index", "key"))
         dynamic = PublicFieldSerializer(fqs, many=True).data
-
-        # Localizer
-        def L(item, en_key, ar_key):
-            return (item.get(ar_key) or item.get(en_key) or "").strip() if locale == "ar" \
-                   else (item.get(en_key) or item.get(ar_key) or "").strip()
-
         for item in dynamic:
-            item["label"] = L(item, "label_en", "label_ar")
-            item["placeholder"] = L(item, "placeholder_en", "placeholder_ar")
+            item["label"] = _localize(item, locale, "label_en", "label_ar")
+            item["placeholder"] = _localize(item, locale, "placeholder_en", "placeholder_ar")
 
-        # 2) Core fields (static definition)
+        # Core fields definition
         core_fields = [
             {
                 "key": "title",
@@ -550,52 +604,38 @@ class AdFormSchemaView(APIView):
         ]
 
         mode = "create"
-        submit = {"method": "POST", "url": "/api/ads/create"}
         ad_hint = {}
+        submit = {"method": "POST", "url": "/api/ads/form"}
 
-        # 3) If edit mode requested -> fetch ad + prefill 'value'
-        if ad_id or ad_code:
-            # must be authenticated owner
-            user = self._get_user_from_auth(request)
+        # If edit requested
+        if ad_id:
             if not user:
                 return Response({"status": False, "message": "Authentication required for edit"}, status=401)
 
-            if ad_id:
-                ad = get_object_or_404(
-                    Ad.objects.prefetch_related(
-                        Prefetch("values", queryset=AdFieldValue.objects.select_related("field"))
-                    ),
-                    id=ad_id, owner=user, category=cat
-                )
-            else:
-                ad = get_object_or_404(
-                    Ad.objects.prefetch_related(
-                        Prefetch("values", queryset=AdFieldValue.objects.select_related("field"))
-                    ),
-                    code=ad_code, owner=user, category=cat
-                )
+            ad = get_object_or_404(
+                Ad.objects.prefetch_related(
+                    Prefetch("values", queryset=AdFieldValue.objects.select_related("field"))
+                ),
+                id=ad_id, owner=user, category=cat
+            )
 
-            # core values
+            # Prefill core
             core_map = {"title": ad.title, "price": ad.price, "city": ad.city}
             for cf in core_fields:
                 cf["value"] = core_map.get(cf["key"])
 
-            # dynamic values: pick value with matching locale if available, else latest
-            # Build: key -> best value
+            # Prefill dynamic (prefer matching locale if provided in AdFieldValue.locale, else any)
             best = {}
             for v in ad.values.all():
                 k = v.field.key
                 if v.locale == locale:
                     best[k] = v.value
                 elif k not in best:
-                    # fallback: keep first seen; we'll still allow override by exact-locale later
                     best[k] = v.value
-
             for item in dynamic:
                 item["value"] = best.get(item["key"])
 
             mode = "edit"
-            submit = {"method": "POST", "url": "/api/ads/update"}
             ad_hint = {"ad_id": ad.id, "code": ad.code}
 
         payload = {
@@ -608,7 +648,92 @@ class AdFormSchemaView(APIView):
                 "core_fields": core_fields,
                 "dynamic_fields": dynamic,
                 "submit": submit,
-                "ad": ad_hint  # only in edit mode
+                "ad": ad_hint  # present only for edit
             }
         }
-        return Response(payload, status=status.HTTP_200_OK)
+        return Response(payload, status=200)
+
+    # ---------- POST: create or edit (same body shape) ----------
+    def post(self, request):
+        user = _auth_user_from_request(request)
+        if not user:
+            return Response({"status": False, "message": "Authentication required"}, status=401)
+
+        data = request.data.copy()
+        # Detect create vs edit
+        ad_id = data.get("ad_id")
+
+        # Extract files (multipart) before building serializer payload
+        image_files, video_file = _extract_files(request)
+
+        # Build payload: keep known fields; 'values' may need parsing
+        payload = {}
+        for k in ("category", "title", "price", "city", "values", "images", "video"):
+            if k in data:
+                payload[k] = data[k]
+
+        # Parse values (if string)
+        try:
+            payload["values"] = _parse_values_field(payload)
+        except ValueError as e:
+            return Response({"status": False, "message": str(e)}, status=400)
+
+        # If files present, don't pass images/video URLs to serializers
+        if image_files or video_file:
+            payload.pop("images", None)
+            payload.pop("video", None)
+
+        # CREATE
+        if not ad_id:
+            # category required for create
+            if not payload.get("category"):
+                return Response({"status": False, "message": "category is required"}, status=400)
+
+            # Validate + save (core + dynamic)
+            s = AdCreateSerializer(data=payload, context={"request": request})
+            s.is_valid(raise_exception=True)
+            ad = s.save()  # owner taken from request.user by serializer? If not, patch:
+            if not ad.owner_id:
+                ad.owner = user
+                ad.save(update_fields=["owner"])
+
+        # EDIT
+        else:
+            ad = get_object_or_404(Ad, id=ad_id, owner=user)
+            s = AdUpdateSerializer(data=payload, context={"ad": ad})
+            s.is_valid(raise_exception=True)
+            s.update(ad, s.validated_data)
+
+        # ----- media handling -----
+        MAX_IMAGES = 12
+
+        # Files (multipart)
+        if image_files:
+            if len(image_files) > MAX_IMAGES:
+                return Response({"status": False, "message": f"Max {MAX_IMAGES} images allowed"}, status=400)
+            ad.media.filter(kind=AdMedia.IMAGE).delete()
+            for idx, f in enumerate(image_files[:MAX_IMAGES]):
+                url = _save_upload(f, subdir="ads/images")
+                AdMedia.objects.create(ad=ad, kind=AdMedia.IMAGE, url=url, order_index=idx)
+
+        if video_file:
+            ad.media.filter(kind=AdMedia.VIDEO).delete()
+            url = _save_upload(video_file, subdir="ads/videos")
+            AdMedia.objects.create(ad=ad, kind=AdMedia.VIDEO, url=url, order_index=0)
+
+        # JSON URLs (when not uploading files)
+        if not image_files and isinstance(data.get("images"), list):
+            images_urls = data.get("images") or []
+            if len(images_urls) > MAX_IMAGES:
+                return Response({"status": False, "message": f"Max {MAX_IMAGES} images allowed"}, status=400)
+            ad.media.filter(kind=AdMedia.IMAGE).delete()
+            for idx, u in enumerate(images_urls):
+                AdMedia.objects.create(ad=ad, kind=AdMedia.IMAGE, url=u, order_index=idx)
+
+        if not video_file and isinstance(data.get("video"), str):
+            v = data.get("video")
+            ad.media.filter(kind=AdMedia.VIDEO).delete()
+            if v:
+                AdMedia.objects.create(ad=ad, kind=AdMedia.VIDEO, url=v, order_index=0)
+
+        return Response({"status": True, "message": "Saved", "data": AdDetailSerializer(ad).data}, status=200)
