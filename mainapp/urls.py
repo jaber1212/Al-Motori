@@ -26,7 +26,7 @@ urlpatterns = [
 
     path('api/ads/mine',     MyAdsListView.as_view()),     # GET (Authorization header)
     path('api/ads/by-token', MyAdsByTokenView.as_view()),  # POST {token}
-    path("api/ads/form-schema", AdFormSchemaView.as_view()),
+    path("api/ads/form", AdFormSchemaView.as_view()),  # GET (schema) + POST (create/edit)
 
     path('api/public/ads/<str:code>', PublicAdByCodeView.as_view()),  # GET
 

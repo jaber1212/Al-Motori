@@ -465,19 +465,32 @@ def fail(message="Failed", *, errors=None, status_code=http_status.HTTP_400_BAD_
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import permissions
+from rest_framework import permissions, status
 from django.shortcuts import get_object_or_404
-from .models import AdCategory, FieldDefinition
+from django.db.models import Prefetch
+from rest_framework.authtoken.models import Token
+
+from .models import AdCategory, FieldDefinition, Ad, AdFieldValue
 from .serializers import PublicFieldSerializer
 
 class AdFormSchemaView(APIView):
     """
-    GET /api/ads/form-schema?category=<key>&locale=<en|ar>
-    Returns the list of fields the mobile should render to create an ad:
-      - core_fields: title/price/city (you can tweak labels/placeholders)
-      - dynamic_fields: from FieldDefinition (ordered)
+    GET /api/ads/form-schema?category=<key>&locale=<en|ar>[&ad_id=..|&ad_code=..]
+    - If ad_id/ad_code is provided, we prefill 'value' for core + dynamic fields.
+    - Requires Authorization: Token <key> for edit mode (to ensure ownership).
     """
     permission_classes = [permissions.AllowAny]
+
+    def _get_user_from_auth(self, request):
+        # Expect 'Authorization: Token <token>'
+        auth = request.headers.get("Authorization") or ""
+        if auth.lower().startswith("token "):
+            key = auth.split(" ", 1)[1].strip()
+            try:
+                return Token.objects.get(key=key).user
+            except Token.DoesNotExist:
+                return None
+        return None
 
     def get(self, request):
         category_key = request.query_params.get("category")
@@ -488,21 +501,29 @@ class AdFormSchemaView(APIView):
         if locale not in ("en", "ar"):
             locale = "en"
 
+        # Optional edit target
+        ad_id   = request.query_params.get("ad_id")
+        ad_code = request.query_params.get("ad_code")
+
         cat = get_object_or_404(AdCategory, key=category_key)
 
-        # Dynamic fields (already ordered by model Meta)
-        fqs = FieldDefinition.objects.filter(category=cat).select_related("type").order_by("order_index", "key")
+        # 1) Base: dynamic field list
+        fqs = (FieldDefinition.objects
+               .filter(category=cat)
+               .select_related("type")
+               .order_by("order_index", "key"))
         dynamic = PublicFieldSerializer(fqs, many=True).data
 
-        # Localize labels/placeholders based on ?locale
+        # Localizer
         def L(item, en_key, ar_key):
-            return (item.get(ar_key) or item.get(en_key) or "").strip() if locale == "ar" else (item.get(en_key) or item.get(ar_key) or "").strip()
+            return (item.get(ar_key) or item.get(en_key) or "").strip() if locale == "ar" \
+                   else (item.get(en_key) or item.get(ar_key) or "").strip()
 
         for item in dynamic:
             item["label"] = L(item, "label_en", "label_ar")
             item["placeholder"] = L(item, "placeholder_en", "placeholder_ar")
 
-        # Core fields you want the app to show before dynamic ones
+        # 2) Core fields (static definition)
         core_fields = [
             {
                 "key": "title",
@@ -513,7 +534,7 @@ class AdFormSchemaView(APIView):
             },
             {
                 "key": "price",
-                "type": "currency",  # mobile can show numeric keyboard
+                "type": "currency",
                 "label": "السعر" if locale == "ar" else "Price",
                 "required": False,
                 "placeholder": "دينار" if locale == "ar" else "JOD",
@@ -528,16 +549,66 @@ class AdFormSchemaView(APIView):
             },
         ]
 
+        mode = "create"
+        submit = {"method": "POST", "url": "/api/ads/create"}
+        ad_hint = {}
+
+        # 3) If edit mode requested -> fetch ad + prefill 'value'
+        if ad_id or ad_code:
+            # must be authenticated owner
+            user = self._get_user_from_auth(request)
+            if not user:
+                return Response({"status": False, "message": "Authentication required for edit"}, status=401)
+
+            if ad_id:
+                ad = get_object_or_404(
+                    Ad.objects.prefetch_related(
+                        Prefetch("values", queryset=AdFieldValue.objects.select_related("field"))
+                    ),
+                    id=ad_id, owner=user, category=cat
+                )
+            else:
+                ad = get_object_or_404(
+                    Ad.objects.prefetch_related(
+                        Prefetch("values", queryset=AdFieldValue.objects.select_related("field"))
+                    ),
+                    code=ad_code, owner=user, category=cat
+                )
+
+            # core values
+            core_map = {"title": ad.title, "price": ad.price, "city": ad.city}
+            for cf in core_fields:
+                cf["value"] = core_map.get(cf["key"])
+
+            # dynamic values: pick value with matching locale if available, else latest
+            # Build: key -> best value
+            best = {}
+            for v in ad.values.all():
+                k = v.field.key
+                if v.locale == locale:
+                    best[k] = v.value
+                elif k not in best:
+                    # fallback: keep first seen; we'll still allow override by exact-locale later
+                    best[k] = v.value
+
+            for item in dynamic:
+                item["value"] = best.get(item["key"])
+
+            mode = "edit"
+            submit = {"method": "POST", "url": "/api/ads/update"}
+            ad_hint = {"ad_id": ad.id, "code": ad.code}
+
         payload = {
             "status": True,
             "message": "Form schema",
             "data": {
+                "mode": mode,
                 "category": {"key": cat.key, "name_en": cat.name_en, "name_ar": cat.name_ar},
                 "locale": locale,
                 "core_fields": core_fields,
-                "dynamic_fields": dynamic,  # array of field rows
-                # Optional hint for where to POST after filling:
-                "submit": {"method": "POST", "url": "/api/ads/create"}
+                "dynamic_fields": dynamic,
+                "submit": submit,
+                "ad": ad_hint  # only in edit mode
             }
         }
-        return Response(payload, status=200)
+        return Response(payload, status=status.HTTP_200_OK)
