@@ -24,3 +24,28 @@ jobs:
         run: |
           scp -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} \
             ./* ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
+
+      - name: SSH and Run Django Setup
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "
+            set -e
+
+            # Navigate to project directory
+            cd /home/artlinew/Motori/
+
+            # Activate virtualenv (adjust Python version if needed)
+            source /home/artlinew/virtualenv/Motori/3.11/bin/activate
+
+            # Install dependencies
+            pip install -r requirements.txt
+
+            # Run Django migrations
+            python manage.py makemigrations
+            python manage.py migrate --noinput
+
+            # Collect static files
+            python manage.py collectstatic --noinput
+
+            # Restart Passenger (for Django on cPanel)
+            mkdir -p tmp && touch tmp/restart.txt
+          "

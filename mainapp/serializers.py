@@ -346,3 +346,25 @@ class PublicAdSerializer(serializers.ModelSerializer):
     def get_video(self, ad):
         v = ad.media.filter(kind=AdMedia.VIDEO).first()
         return v.url if v else None
+# --- Public field schema for mobile ---
+from rest_framework import serializers
+from .models import FieldDefinition
+
+class PublicFieldSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(source="type.key")  # "text" | "number" | "select" | "multiselect" | ...
+
+    class Meta:
+        model = FieldDefinition
+        fields = (
+            "key",
+            "type",
+            "label_en",
+            "label_ar",
+            "required",
+            "order_index",
+            "visible_public",
+            "choices",        # list[str] or list[{value,label_en,label_ar}]
+            "validation",     # e.g. {"minimum":1980,"maximum":2035}
+            "placeholder_en",
+            "placeholder_ar",
+        )

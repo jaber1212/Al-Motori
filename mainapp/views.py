@@ -459,3 +459,85 @@ def fail(message="Failed", *, errors=None, status_code=http_status.HTTP_400_BAD_
     if errors:
         payload["errors"] = errors
     return Response(payload, status=status_code)
+
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import permissions
+from django.shortcuts import get_object_or_404
+from .models import AdCategory, FieldDefinition
+from .serializers import PublicFieldSerializer
+
+class AdFormSchemaView(APIView):
+    """
+    GET /api/ads/form-schema?category=<key>&locale=<en|ar>
+    Returns the list of fields the mobile should render to create an ad:
+      - core_fields: title/price/city (you can tweak labels/placeholders)
+      - dynamic_fields: from FieldDefinition (ordered)
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        category_key = request.query_params.get("category")
+        if not category_key:
+            return Response({"status": False, "message": "category is required"}, status=400)
+
+        locale = (request.query_params.get("locale") or "en").lower()
+        if locale not in ("en", "ar"):
+            locale = "en"
+
+        cat = get_object_or_404(AdCategory, key=category_key)
+
+        # Dynamic fields (already ordered by model Meta)
+        fqs = FieldDefinition.objects.filter(category=cat).select_related("type").order_by("order_index", "key")
+        dynamic = PublicFieldSerializer(fqs, many=True).data
+
+        # Localize labels/placeholders based on ?locale
+        def L(item, en_key, ar_key):
+            return (item.get(ar_key) or item.get(en_key) or "").strip() if locale == "ar" else (item.get(en_key) or item.get(ar_key) or "").strip()
+
+        for item in dynamic:
+            item["label"] = L(item, "label_en", "label_ar")
+            item["placeholder"] = L(item, "placeholder_en", "placeholder_ar")
+
+        # Core fields you want the app to show before dynamic ones
+        core_fields = [
+            {
+                "key": "title",
+                "type": "text",
+                "label": "العنوان" if locale == "ar" else "Title",
+                "required": False,
+                "placeholder": "اكتب عنوان الإعلان" if locale == "ar" else "Write the ad title",
+            },
+            {
+                "key": "price",
+                "type": "currency",  # mobile can show numeric keyboard
+                "label": "السعر" if locale == "ar" else "Price",
+                "required": False,
+                "placeholder": "دينار" if locale == "ar" else "JOD",
+                "validation": {"minimum": 0}
+            },
+            {
+                "key": "city",
+                "type": "text",
+                "label": "المدينة" if locale == "ar" else "City",
+                "required": False,
+                "placeholder": "عمّان" if locale == "ar" else "Amman",
+            },
+        ]
+
+        payload = {
+            "status": True,
+            "message": "Form schema",
+            "data": {
+                "category": {"key": cat.key, "name_en": cat.name_en, "name_ar": cat.name_ar},
+                "locale": locale,
+                "core_fields": core_fields,
+                "dynamic_fields": dynamic,  # array of field rows
+                # Optional hint for where to POST after filling:
+                "submit": {"method": "POST", "url": "/api/ads/create"}
+            }
+        }
+        return Response(payload, status=200)
