@@ -31,10 +31,10 @@ jobs:
             set -e
 
             # Navigate to project directory
-            cd /home/artlinew/Motori/
+            cd /home/artlinew/Motori
 
             # Activate virtualenv (adjust Python version if needed)
-            source /home/artlinew/virtualenv/Motori/3.11/bin/activate
+            source /home/artlinew/virtualenv/Motori/3.9/bin/activate
 
             # Install dependencies
             pip install -r requirements.txt
