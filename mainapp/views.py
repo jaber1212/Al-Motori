@@ -754,3 +754,238 @@ def first_error_message(detail):
     if isinstance(detail, ErrorDetail):
         return str(detail)
     return str(detail)
+
+# views_ads_media.py
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.db.models import Count, Q
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework import permissions, status
+from rest_framework.exceptions import ValidationError
+
+# from .models import Ad, AdMedia  # <- make sure these exist
+# from .serializers import AdDetailSerializer  # optional for GET return
+# from .utils import _auth_user_from_request, _save_upload  # your helpers
+
+class AdMediaView(APIView):
+    """
+    Media management for an Ad.
+
+    GET    /api/ads/media?ad_id=123
+      -> list current media (images + optional single video)
+
+    POST   /api/ads/media  (multipart OR JSON)
+      Body:
+        ad_id: int (required)
+        images[]: files (optional, multiple)      [multipart]
+        video: file (optional)                     [multipart]
+        images: ["url1","url2",...]               [JSON]
+        video: "url"                              [JSON]
+        replace_video: true|false (optional)      [JSON/form] default False
+      -> appends media respecting limits (max 10 images, max 1 video). If video exists and replace_video not true, rejects.
+
+    DELETE /api/ads/media
+      Query/body:
+        ad_id: int (required)
+        media_id: int (optional)  -> delete specific media
+        kind: image|video         -> delete all of that kind for the ad (if media_id not provided)
+
+    PUT    /api/ads/media/reorder
+      Body (JSON):
+        ad_id: int (required)
+        order: [media_id1, media_id2, ...]  -> applies order for images only
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    MAX_IMAGES = 10
+    MAX_VIDEO = 1
+    IMAGE_SUBDIR = "ads/images"
+    VIDEO_SUBDIR = "ads/videos"
+
+    # ---------- GET: list media ----------
+    def get(self, request):
+        user = _auth_user_from_request(request)
+        if not user:
+            return Response({"status": False, "message": "Authentication required"}, status=401)
+
+        ad_id = request.query_params.get("ad_id")
+        if not ad_id:
+            return Response({"status": False, "message": "ad_id is required"}, status=400)
+
+        ad = get_object_or_404(Ad.objects.filter(owner=user), id=ad_id)
+        media_qs = ad.media.order_by("kind", "order_index", "id").values("id", "kind", "url", "order_index")
+        data = {
+            "ad_id": ad.id,
+            "images": [m for m in media_qs if m["kind"] == AdMedia.IMAGE],
+            "video": next((m for m in media_qs if m["kind"] == AdMedia.VIDEO), None)
+        }
+        return Response({"status": True, "message": "Media list", "data": data}, status=200)
+
+    # ---------- POST: upload / append media ----------
+    @transaction.atomic
+    def post(self, request):
+        user = _auth_user_from_request(request)
+        if not user:
+            return Response({"status": False, "message": "Authentication required"}, status=401)
+
+        data = request.data
+        ad_id = data.get("ad_id")
+        if not ad_id:
+            return Response({"status": False, "message": "ad_id is required"}, status=400)
+
+        ad = get_object_or_404(Ad.objects.filter(owner=user), id=ad_id)
+
+        # extract uploaded files if any (multipart)
+        image_files, video_file = self._extract_files(request)
+        # or JSON urls
+        images_urls = data.get("images") if isinstance(data.get("images"), list) else []
+        video_url = data.get("video") if isinstance(data.get("video"), str) else None
+
+        replace_video = str(data.get("replace_video", "false")).lower() in ("1", "true", "yes")
+
+        # current counts
+        current_images = ad.media.filter(kind=AdMedia.IMAGE).count()
+        current_videos = ad.media.filter(kind=AdMedia.VIDEO).count()
+
+        # ---- enforce image limit
+        new_image_count = len(image_files) if image_files else len(images_urls)
+        if new_image_count:
+            can_add = self.MAX_IMAGES - current_images
+            if can_add <= 0:
+                return Response({"status": False, "message": f"Max {self.MAX_IMAGES} images already reached"}, status=400)
+            if new_image_count > can_add:
+                return Response({"status": False, "message": f"Can only add {can_add} more image(s). Max is {self.MAX_IMAGES}."}, status=400)
+
+        # ---- enforce video limit
+        wants_video = bool(video_file or video_url)
+        if wants_video:
+            if current_videos >= self.MAX_VIDEO and not replace_video:
+                return Response({"status": False, "message": "A video already exists. Set replace_video=true to overwrite."}, status=400)
+
+        # save images
+        if new_image_count:
+            start_index = ad.media.filter(kind=AdMedia.IMAGE).aggregate(c=Count("id"))["c"] or 0
+            if image_files:  # multipart files
+                for idx, f in enumerate(image_files):
+                    url = _save_upload(f, subdir=self.IMAGE_SUBDIR)
+                    AdMedia.objects.create(ad=ad, kind=AdMedia.IMAGE, url=url, order_index=start_index + idx)
+            else:  # urls
+                for idx, u in enumerate(images_urls):
+                    AdMedia.objects.create(ad=ad, kind=AdMedia.IMAGE, url=u, order_index=start_index + idx)
+
+        # save/replace video
+        if wants_video:
+            if replace_video:
+                ad.media.filter(kind=AdMedia.VIDEO).delete()
+            elif current_videos >= self.MAX_VIDEO:
+                # defensive (should already be caught)
+                return Response({"status": False, "message": "Video already exists"}, status=400)
+
+            if video_file:
+                v_url = _save_upload(video_file, subdir=self.VIDEO_SUBDIR)
+            else:
+                v_url = video_url
+            AdMedia.objects.create(ad=ad, kind=AdMedia.VIDEO, url=v_url, order_index=0)
+
+        # return fresh list
+        media_qs = ad.media.order_by("kind", "order_index", "id").values("id", "kind", "url", "order_index")
+        data_out = {
+            "ad_id": ad.id,
+            "images": [m for m in media_qs if m["kind"] == AdMedia.IMAGE],
+            "video": next((m for m in media_qs if m["kind"] == AdMedia.VIDEO), None)
+        }
+        return Response({"status": True, "message": "Media updated", "data": data_out}, status=200)
+
+    # ---------- DELETE: remove media ----------
+    @transaction.atomic
+    def delete(self, request):
+        user = _auth_user_from_request(request)
+        if not user:
+            return Response({"status": False, "message": "Authentication required"}, status=401)
+
+        ad_id = request.query_params.get("ad_id") or request.data.get("ad_id")
+        if not ad_id:
+            return Response({"status": False, "message": "ad_id is required"}, status=400)
+
+        ad = get_object_or_404(Ad.objects.filter(owner=user), id=ad_id)
+
+        media_id = request.query_params.get("media_id") or request.data.get("media_id")
+        kind = (request.query_params.get("kind") or request.data.get("kind") or "").lower()
+
+        if media_id:
+            deleted, _ = ad.media.filter(id=media_id).delete()
+            if not deleted:
+                return Response({"status": False, "message": "media_id not found"}, status=404)
+        else:
+            if kind not in ("image", "video"):
+                return Response({"status": False, "message": "Provide media_id or kind=image|video"}, status=400)
+            ad.media.filter(kind=AdMedia.IMAGE if kind == "image" else AdMedia.VIDEO).delete()
+
+        # re-pack list
+        media_qs = ad.media.order_by("kind", "order_index", "id").values("id", "kind", "url", "order_index")
+        data_out = {
+            "ad_id": ad.id,
+            "images": [m for m in media_qs if m["kind"] == AdMedia.IMAGE],
+            "video": next((m for m in media_qs if m["kind"] == AdMedia.VIDEO), None)
+        }
+        return Response({"status": True, "message": "Media deleted", "data": data_out}, status=200)
+
+    # ---------- PUT: reorder images ----------
+    @transaction.atomic
+    def put(self, request):
+        # use a separate path /api/ads/media/reorder if you prefer; router here for simplicity
+        user = _auth_user_from_request(request)
+        if not user:
+            return Response({"status": False, "message": "Authentication required"}, status=401)
+
+        data = request.data
+        ad_id = data.get("ad_id")
+        order = data.get("order")
+        if not ad_id:
+            return Response({"status": False, "message": "ad_id is required"}, status=400)
+        if not isinstance(order, list) or not order:
+            return Response({"status": False, "message": "order must be a non-empty list of media_ids"}, status=400)
+
+        ad = get_object_or_404(Ad.objects.filter(owner=user), id=ad_id)
+
+        images_qs = ad.media.filter(kind=AdMedia.IMAGE)
+        valid_ids = set(images_qs.values_list("id", flat=True))
+        if not set(order).issubset(valid_ids):
+            return Response({"status": False, "message": "order contains invalid media_ids"}, status=400)
+
+        # apply order_index = index in list
+        id_to_idx = {mid: i for i, mid in enumerate(order)}
+        for m in images_qs:
+            if m.id in id_to_idx:
+                m.order_index = id_to_idx[m.id]
+                m.save(update_fields=["order_index"])
+
+        media_qs = ad.media.order_by("kind", "order_index", "id").values("id", "kind", "url", "order_index")
+        data_out = {
+            "ad_id": ad.id,
+            "images": [m for m in media_qs if m["kind"] == AdMedia.IMAGE],
+            "video": next((m for m in media_qs if m["kind"] == AdMedia.VIDEO), None)
+        }
+        return Response({"status": True, "message": "Images reordered", "data": data_out}, status=200)
+
+    # ---------- helpers ----------
+    def _extract_files(self, request):
+        """Return (image_files, video_file) from multipart."""
+        image_files = []
+        video_file = None
+        if hasattr(request, "FILES"):
+            # images[] or images
+            if "images" in request.FILES:
+                # could be list or single
+                files = request.FILES.getlist("images") or [request.FILES["images"]]
+                image_files.extend(files)
+            elif "images[]" in request.FILES:
+                image_files.extend(request.FILES.getlist("images[]"))
+
+            # video
+            video_file = request.FILES.get("video")
+
+        return (image_files, video_file)

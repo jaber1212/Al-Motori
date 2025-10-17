@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/public/ads/<str:code>', PublicAdByCodeView.as_view()),  # GET
 
 
+    path("api/ads/media", AdMediaView.as_view(), name="ad-media"),
 
 
 
