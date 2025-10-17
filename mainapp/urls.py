@@ -37,6 +37,9 @@ urlpatterns = [
 
 
 
+    path("ads/<str:code>/", ad_public_page_by_code, name="ad_public_page_by_code"),
+    path("ads/id/<int:ad_id>/", ad_public_page_by_id, name="ad_public_page_by_id"),
+
 
 
     

@@ -989,3 +989,118 @@ class AdMediaView(APIView):
             video_file = request.FILES.get("video")
 
         return (image_files, video_file)
+
+
+# views.py
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Prefetch
+from .models import Ad, AdMedia, AdFieldValue, FieldDefinition
+
+def _lang(request):
+    """Decide language from ?lang=ar|en, header, or default."""
+    lang = (request.GET.get("lang") or request.headers.get("Accept-Language") or "en").lower()
+    return "ar" if lang.startswith("ar") else "en"
+
+def _label(fd: FieldDefinition, lang: str):
+    return (fd.label_ar or fd.label_en) if lang == "ar" else (fd.label_en or fd.label_ar or fd.key)
+
+def _placeholder(fd: FieldDefinition, lang: str):
+    return (fd.placeholder_ar or fd.placeholder_en) if lang == "ar" else (fd.placeholder_en or fd.placeholder_ar or "")
+
+def _format_value(fd: FieldDefinition, value):
+    """
+    Convert JSON 'value' to a nice string for display. You can enhance per type.
+    """
+    if value is None:
+        return ""
+    t = fd.type.key if fd.type else "text"
+    if t in ("multiselect",):
+        if isinstance(value, list):
+            return ", ".join([str(v) for v in value])
+    return str(value)
+
+# views.py
+def ad_public_page_by_code(request, code: str):
+    """
+    Public ad page by code (only 'published' ads are shown).
+    Template: templates/ads/ad_detail.html
+    """
+    lang = _lang(request)
+
+    ad = get_object_or_404(
+        Ad.objects
+          .filter(status="published")
+          .select_related("category")
+          .prefetch_related(
+              Prefetch("values", queryset=AdFieldValue.objects.select_related("field", "field__type")),
+              Prefetch("media",  queryset=AdMedia.objects.order_by("kind", "order_index", "id")),
+          ),
+        code=code
+    )
+
+    # Core fields (feel free to change labels)
+    core = [
+        {"key": "title", "label": "العنوان" if lang == "ar" else "Title", "value": ad.title or ""},
+        {"key": "price", "label": "السعر" if lang == "ar" else "Price", "value": (f"{ad.price:.2f}" if ad.price is not None else "")},
+        {"key": "city",  "label": "المدينة" if lang == "ar" else "City",  "value": ad.city or ""},
+        {"key": "code",  "label": "رمز الإعلان" if lang == "ar" else "Ad Code", "value": ad.code},
+        {"key": "date",  "label": "تاريخ النشر" if lang == "ar" else "Published", "value": ad.published_at.strftime("%Y-%m-%d %H:%M") if ad.published_at else ""},
+    ]
+
+    # Dynamic fields (only visible_public)
+    # Prefer same-locale AdFieldValue if you store 'locale'; else fallback to any
+    # Build best map per field key
+    best_values = {}
+    for v in ad.values.all():
+        k = v.field.key
+        if v.field.visible_public is False:
+            continue
+        # prefer same-locale, else keep first seen
+        if v.locale == lang or k not in best_values:
+            best_values[k] = (v.field, v.value)
+
+    dynamic = []
+    for k, (fd, val) in best_values.items():
+        dynamic.append({
+            "key": k,
+            "label": _label(fd, lang),
+            "placeholder": _placeholder(fd, lang),
+            "value_raw": val,
+            "value": _format_value(fd, val),
+            "type": fd.type.key if fd.type else "text",
+            "order_index": fd.order_index,
+        })
+    dynamic.sort(key=lambda x: (x["order_index"], x["key"]))
+
+    # Media
+    images = [m.url for m in ad.media.all() if m.kind == AdMedia.IMAGE]
+    video  = next((m.url for m in ad.media.all() if m.kind == AdMedia.VIDEO), None)
+
+    context = {
+        "lang": lang,
+        "ad": ad,
+        "category": {
+            "key": ad.category.key,
+            "name": ad.category.name_ar if lang == "ar" else ad.category.name_en,
+        },
+        "core": core,
+        "dynamic": dynamic,
+        "images": images,
+        "video": video,
+        # Simple SEO/OpenGraph (tweak as you like)
+        "meta": {
+            "title": ad.title or (ad.category.name_ar if lang == "ar" else ad.category.name_en),
+            "description": f"{ad.city or ''} • {ad.price or ''}",
+            "image": images[0] if images else None,
+            "url": request.build_absolute_uri(),
+        }
+    }
+    return render(request, "ads/ad_detail.html", context)
+
+
+def ad_public_page_by_id(request, ad_id: int):
+    """
+    Optional: render by ID but still only 'published' ads.
+    """
+    ad = get_object_or_404(Ad, id=ad_id, status="published")
+    return ad_public_page_by_code(request, ad.code)  # reuse same renderer

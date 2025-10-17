@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ meta.title }}</title>
+  {% if meta.description %}<meta name="description" content="{{ meta.description }}">{% endif %}
+  {% if meta.image %}<meta property="og:image" content="{{ meta.image }}">{% endif %}
+  <meta property="og:title" content="{{ meta.title }}">
+  <meta property="og:url" content="{{ meta.url }}">
+
+  <link rel="stylesheet" href="{% static 'css/ad-page.css' %}">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7f9;color:#1f2937;margin:0}
+    .container{max-width:1100px;margin:24px auto;padding:0 16px}
+    .card{background:#fff;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,.06);overflow:hidden;margin-bottom:20px}
+    .header{display:flex;gap:16px;align-items:center;padding:18px 20px;border-bottom:1px solid #eee}
+    .header .thumb{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#f0f0f0}
+    .title{font-size:22px;font-weight:700;margin:0}
+    .meta{color:#6b7280;font-size:14px;margin-top:4px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:16px 20px}
+    .field{border:1px solid #eef1f5;border-radius:12px;padding:12px 14px;background:#fafbfc}
+    .label{font-size:12px;color:#6b7280;margin:0 0 6px}
+    .value{font-size:15px;font-weight:600;margin:0}
+    .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:16px 20px}
+    .gallery img{width:100%;height:180px;object-fit:cover;border-radius:12px}
+    .video{padding:0 20px 20px}
+    .video video{width:100%;max-height:480px;border-radius:12px;background:#000}
+    .section-title{font-size:16px;font-weight:700;margin:12px 20px}
+    html[lang="ar"] body{direction:rtl}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <article class="card">
+      <header class="header">
+        {% if images and images.0 %}
+          <img class="thumb" src="{{ images.0 }}" alt="">
+        {% else %}
+          <div class="thumb"></div>
+        {% endif %}
+        <div>
+          <h1 class="title">{{ ad.title|default:category.name }}</h1>
+          <p class="meta">
+            {{ category.name }} •
+            {% if ad.city %}{{ ad.city }} • {% endif %}
+            {% if ad.published_at %}{{ ad.published_at|date:"Y-m-d H:i" }}{% endif %}
+            • {{ ad.code }}
+          </p>
+        </div>
+      </header>
+
+      <!-- Core fields -->
+      <h2 class="section-title">{% if lang == 'ar' %}البيانات الأساسية{% else %}Core Info{% endif %}</h2>
+      <section class="grid">
+        {% for f in core %}
+          {% if f.value %}
+          <div class="field">
+            <p class="label">{{ f.label }}</p>
+            <p class="value">{{ f.value }}</p>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </section>
+
+      <!-- Dynamic fields -->
+      {% if dynamic %}
+      <h2 class="section-title">{% if lang == 'ar' %}تفاصيل إضافية{% else %}Details{% endif %}</h2>
+      <section class="grid">
+        {% for f in dynamic %}
+          {% if f.value %}
+          <div class="field">
+            <p class="label">{{ f.label }}</p>
+            <p class="value">{{ f.value }}</p>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      <!-- Media -->
+      {% if images %}
+        <h2 class="section-title">{% if lang == 'ar' %}الصور{% else %}Photos{% endif %}</h2>
+        <section class="gallery">
+          {% for u in images %}
+            <img src="{{ u }}" alt="">
+          {% endfor %}
+        </section>
+      {% endif %}
+
+      {% if video %}
+        <h2 class="section-title">{% if lang == 'ar' %}الفيديو{% else %}Video{% endif %}</h2>
+        <section class="video">
+          <video src="{{ video }}" controls playsinline></video>
+        </section>
+      {% endif %}
+    </article>
+  </div>
+</body>
+</html>
