@@ -534,6 +534,24 @@ def _extract_files(request):
 
 # You already have _save_upload(file_obj, subdir) in your file. Reuse it.
 
+def _as_bool(v):
+    """
+    Accepts: True/False, "true"/"false", "1"/"0", "yes"/"no", "on"/"off", 1/0.
+    Returns a real bool or None if empty/missing.
+    """
+    if v is None:
+        return None
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return bool(int(v))
+    s = str(v).strip().lower()
+    if s in ("1", "true", "yes", "on"):
+        return True
+    if s in ("0", "false", "no", "off", ""):
+        return False
+    # fallback: anything non-empty is True
+    return True
 
 class AdFormView(APIView):
     """
@@ -601,6 +619,13 @@ class AdFormView(APIView):
                 "required": False,
                 "placeholder": "عمّان" if locale == "ar" else "Amman",
             },
+               {
+        "key": "isPublick",
+        "type": "boolean",  # client can render a switch
+        "label": "عرض الإعلان للعامة" if locale == "ar" else "Public (publish)",
+        "required": False,
+        "placeholder": "",
+    }
         ]
 
         mode = "create"
@@ -620,7 +645,7 @@ class AdFormView(APIView):
             )
 
             # Prefill core
-            core_map = {"title": ad.title, "price": ad.price, "city": ad.city}
+            core_map = {"title": ad.title, "price": ad.price, "city": ad.city, "isPublick": (ad.status == "published")}
             for cf in core_fields:
                 cf["value"] = core_map.get(cf["key"])
 
@@ -660,7 +685,6 @@ class AdFormView(APIView):
             return Response({"status": False, "message": "Authentication required"}, status=401)
 
         data = request.data.copy()
-        # Detect create vs edit
         ad_id = data.get("ad_id")
 
         # Extract files (multipart) before building serializer payload
@@ -683,12 +707,10 @@ class AdFormView(APIView):
             payload.pop("images", None)
             payload.pop("video", None)
 
-        # CREATE
-     # CREATE
+        # ------------- create or edit -------------
         if not ad_id:
             if not payload.get("category"):
                 return Response({"status": False, "message": "category is required"}, status=400)
-
             try:
                 s = AdCreateSerializer(data=payload, context={"request": request})
                 s.is_valid(raise_exception=True)
@@ -699,8 +721,6 @@ class AdFormView(APIView):
             if not ad.owner_id:
                 ad.owner = user
                 ad.save(update_fields=["owner"])
-
-        # EDIT
         else:
             ad = get_object_or_404(Ad, id=ad_id, owner=user)
             try:
@@ -710,7 +730,7 @@ class AdFormView(APIView):
             except ValidationError as e:
                 return Response({"status": False, "message": first_error_message(e.detail)}, status=400)
 
-        # ----- media handling -----
+        # ------------- media handling -------------
         MAX_IMAGES = 12
 
         # Files (multipart)
@@ -742,9 +762,30 @@ class AdFormView(APIView):
             if v:
                 AdMedia.objects.create(ad=ad, kind=AdMedia.VIDEO, url=v, order_index=0)
 
-        return Response({"status": True, "message": "Saved", "data": AdDetailSerializer(ad).data}, status=200)
+        # ------------- NEW: publish/draft via isPublick -------------
+        is_publick = _as_bool(data.get("isPublick"))
+        if is_publick is True:
+            # publish
+            if ad.status != "published":
+                ad.status = "published"
+                ad.published_at = timezone.now()
+                ad.save(update_fields=["status", "published_at"])
+        elif is_publick is False:
+            # draft
+            if ad.status != "draft" or ad.published_at is not None:
+                ad.status = "draft"
+                ad.published_at = None
+                ad.save(update_fields=["status", "published_at"])
+        # If None -> user did not touch it; keep current status
 
-
+        return Response({
+            "status": True,
+            "message": "Saved",
+            "data": {
+                **AdDetailSerializer(ad).data,
+                "isPublick": (ad.status == "published")
+            }
+        }, status=200)
 
 def first_error_message(detail):
     if isinstance(detail, dict):
