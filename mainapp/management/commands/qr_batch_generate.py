@@ -1,7 +1,7 @@
 import csv, secrets, string
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
-from mainapp.models_qr import QRCode
+from models import QRCode
 
 def make_code(length=8):
     # A-Z + 0-9 (no ambiguous chars if you want)
