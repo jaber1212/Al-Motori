@@ -1145,3 +1145,121 @@ def ad_public_page_by_id(request, ad_id: int):
     """
     ad = get_object_or_404(Ad, id=ad_id, status="published")
     return ad_public_page_by_code(request, ad.code)  # reuse same renderer
+
+
+
+
+
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.db import transaction
+from rest_framework import permissions, status, views
+from rest_framework.response import Response
+
+from .models import Ad
+from .models import QRCode, QRScanLog
+from .serializers import ClaimQRSerializer, ActivateQRSerializer
+
+PUBLIC_BASE = "https://motori.a.alce-qa.com"  # edit to your domain
+
+def _client_ip(request):
+    # simple best-effort; adjust if behind proxy (use X-Forwarded-For if trusted)
+    return request.META.get("REMOTE_ADDR")
+
+class ClaimQRView(views.APIView):
+    """
+    Auth user binds an unused QR to his draft ad (does NOT publish yet).
+    POST { ad_id, code }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        s = ClaimQRSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        ad = get_object_or_404(Ad, id=s.validated_data["ad_id"], owner=request.user)
+        qr = get_object_or_404(QRCode, code=s.validated_data["code"])
+
+        if qr.ad and qr.ad_id != ad.id:
+            return Response({"status": False, "message": "QR already assigned to another ad."}, status=400)
+
+        qr.ad = ad
+        qr.is_assigned = True
+        qr.save(update_fields=["ad", "is_assigned"])
+
+        return Response({"status": True, "message": "QR linked to ad. Activate by scanning from the app."})
+
+
+class ActivateQRView(views.APIView):
+    """
+    First app scan: bind if needed + activate + publish ad.
+    POST { ad_id, code }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request):
+        s = ActivateQRSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        ad = get_object_or_404(Ad, id=s.validated_data["ad_id"], owner=request.user)
+        qr = get_object_or_404(QRCode, code=s.validated_data["code"])
+
+        # If already used by another ad → reject
+        if qr.ad and qr.ad_id != ad.id:
+            return Response({"status": False, "message": "QR already assigned to another ad."}, status=400)
+
+        # Bind if not bound
+        if not qr.ad_id:
+            qr.ad = ad
+            qr.is_assigned = True
+
+        # Activate once
+        if not qr.is_activated:
+            qr.is_activated = True
+            if ad.status != "published":
+                ad.status = "published"
+                ad.published_at = timezone.now()
+                ad.save(update_fields=["status", "published_at"])
+
+        qr.save(update_fields=["ad", "is_assigned", "is_activated"])
+
+        # Log + counters
+        QRScanLog.objects.create(
+            qr=qr, ad=ad,
+            ip=_client_ip(request),
+            user_agent=request.META.get("HTTP_USER_AGENT"),
+            referrer=request.META.get("HTTP_REFERER")
+        )
+        qr.mark_scanned()
+
+        public_url = f"{PUBLIC_BASE}/ads/{ad.code}"
+        return Response({"status": True, "message": "Ad published via QR.", "public_url": public_url}, status=200)
+
+
+
+from django.http import HttpResponse, HttpResponseNotFound, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
+from .models import QRCode, QRScanLog
+
+def qr_landing(request, code):
+    qr = get_object_or_404(QRCode, code=code)
+
+    # log every hit
+    QRScanLog.objects.create(
+        qr=qr, ad=qr.ad,
+        ip=request.META.get("REMOTE_ADDR"),
+        user_agent=request.META.get("HTTP_USER_AGENT"),
+        referrer=request.META.get("HTTP_REFERER"),
+    )
+    qr.mark_scanned()
+
+    if not qr.ad_id:
+        # unassigned sticker
+        return HttpResponseNotFound("<h2>QR not assigned yet.</h2>")
+
+    if not qr.is_activated:
+        # linked but not activated by the owner from the app
+        return HttpResponse("<h2>This ad is not activated yet.</h2>", status=403)
+
+    # activated → redirect to the public ad page
+    return HttpResponseRedirect(f"/ads/{qr.ad.code}")

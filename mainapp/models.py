@@ -116,3 +116,54 @@ class AdMedia(models.Model):
             models.UniqueConstraint(fields=["ad"], condition=Q(kind="video"), name="unique_video_per_ad")
         ]
     def __str__(self): return f"{self.ad.code}:{self.kind}@{self.order_index}"
+
+
+
+from django.db import models, transaction
+from django.utils import timezone
+from django.conf import settings
+from .models import Ad  # your existing Ad model
+
+class QRCode(models.Model):
+    code = models.CharField(max_length=24, unique=True, db_index=True)  # printed code
+    batch = models.CharField(max_length=50, blank=True, null=True)      # optional: printing batch label
+    ad = models.OneToOneField(Ad, on_delete=models.SET_NULL, null=True, blank=True, related_name="qr_code")
+
+    is_assigned = models.BooleanField(default=False)   # got linked to an Ad
+    is_activated = models.BooleanField(default=False)  # first app scan completed activation
+    first_scan_at = models.DateTimeField(null=True, blank=True)
+    scans_count = models.PositiveIntegerField(default=0)
+    last_scan_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["batch"]),
+            models.Index(fields=["is_assigned", "is_activated"]),
+        ]
+
+    def __str__(self):
+        return self.code
+
+    def mark_scanned(self):
+        now = timezone.now()
+        if not self.first_scan_at:
+            self.first_scan_at = now
+        self.scans_count += 1
+        self.last_scan_at = now
+        self.save(update_fields=["first_scan_at", "scans_count", "last_scan_at"])
+
+
+class QRScanLog(models.Model):
+    qr = models.ForeignKey(QRCode, on_delete=models.CASCADE, related_name="logs")
+    ad = models.ForeignKey(Ad, on_delete=models.SET_NULL, null=True, blank=True, related_name="qr_logs")
+    scanned_at = models.DateTimeField(auto_now_add=True)
+
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, null=True)
+    referrer = models.URLField(max_length=500, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.qr.code} @ {self.scanned_at}"
+

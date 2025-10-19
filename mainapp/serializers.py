@@ -368,3 +368,15 @@ class PublicFieldSerializer(serializers.ModelSerializer):
             "placeholder_en",
             "placeholder_ar",
         )
+
+
+
+from rest_framework import serializers
+
+class ClaimQRSerializer(serializers.Serializer):
+    ad_id = serializers.IntegerField()
+    code  = serializers.CharField(max_length=24)
+
+class ActivateQRSerializer(serializers.Serializer):
+    ad_id = serializers.IntegerField()
+    code  = serializers.CharField(max_length=24)

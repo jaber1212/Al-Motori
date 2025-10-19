@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path,re_path
 from mainapp.views import *
 
 urlpatterns = [
@@ -40,7 +40,9 @@ urlpatterns = [
     path("ads/<str:code>/", ad_public_page_by_code, name="ad_public_page_by_code"),
     path("ads/id/<int:ad_id>/", ad_public_page_by_id, name="ad_public_page_by_id"),
 
-
+    path("api/qr/claim",    ClaimQRView.as_view(),    name="qr_claim"),
+    path("api/qr/activate", ActivateQRView.as_view(), name="qr_activate"),
+    re_path(r"^qr/(?P<code>[A-Za-z0-9\-]+)/?$", qr_landing, name="qr_landing")
 
     
 ]
