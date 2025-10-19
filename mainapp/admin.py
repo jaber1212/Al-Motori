@@ -65,3 +65,17 @@ class AdAdmin(admin.ModelAdmin):
     list_filter  = ("status","category","city")
     search_fields= ("code","title","owner__username")
     inlines = [AdMediaInline, AdFieldValueInline]
+from django.contrib import admin
+from .models import QRCode, QRScanLog
+
+@admin.register(QRCode)
+class QRCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "batch", "ad", "is_assigned", "is_activated", "scans_count", "last_scan_at")
+    list_filter  = ("batch", "is_assigned", "is_activated")
+    search_fields = ("code", "batch", "ad__code")
+
+@admin.register(QRScanLog)
+class QRScanLogAdmin(admin.ModelAdmin):
+    list_display = ("qr", "ad", "scanned_at", "ip")
+    list_filter  = ("scanned_at",)
+    search_fields = ("qr__code", "ad__code", "ip", "user_agent")
