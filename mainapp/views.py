@@ -1266,13 +1266,15 @@ def qr_landing(request, code):
 
 
 
+# views.py
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponseRedirect
 from django.urls import reverse
+from .models import Ad
+
 def ad_public_redirect_by_id(request, ad_id: int):
     ad = get_object_or_404(Ad, id=ad_id, status="published")
-    # Build canonical URL by code
     target = reverse("ad_public_by_code", kwargs={"code": ad.code})
-    # Preserve querystring (lang, utm, etc.)
     if request.META.get("QUERY_STRING"):
         target = f"{target}?{request.META['QUERY_STRING']}"
-    # 302 (temporary) is safer for now; switch to 301 when you’re sure it’s permanent
-    return HttpResponseRedirect(target) 
+    return HttpResponseRedirect(target)

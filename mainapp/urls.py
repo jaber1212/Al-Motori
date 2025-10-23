@@ -45,5 +45,6 @@ urlpatterns = [
     re_path(r"^qr/(?P<code>[A-Za-z0-9\-]+)/?$", qr_landing, name="qr_landing"),
 
     path("ads/<int:ad_id>/", ad_public_redirect_by_id, name="ad_public_redirect_by_id"),
+re_path(r"^ads/(?P<code>(?!\d+$)[A-Za-z0-9\-]+)/$", ad_public_page_by_code, name="ad_public_by_code")
 
 ]
