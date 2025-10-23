@@ -14,6 +14,7 @@ urlpatterns = [
 
     # Profile
     path('api/profile/me', MeProfileView.as_view()),
+        path('api/logout/', views.logout),
 
 
 
