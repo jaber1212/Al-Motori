@@ -42,7 +42,8 @@ urlpatterns = [
 
     path("api/qr/claim",    ClaimQRView.as_view(),    name="qr_claim"),
     path("api/qr/activate", ActivateQRView.as_view(), name="qr_activate"),
-    re_path(r"^qr/(?P<code>[A-Za-z0-9\-]+)/?$", qr_landing, name="qr_landing")
+    re_path(r"^qr/(?P<code>[A-Za-z0-9\-]+)/?$", qr_landing, name="qr_landing"),
 
-    
+    path("ads/<int:ad_id>/", ad_public_redirect_by_id, name="ad_public_redirect_by_id"),
+
 ]
