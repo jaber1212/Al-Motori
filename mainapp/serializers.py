@@ -11,6 +11,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 # ---- unified response helpers (only this part changed) ----
 def success_response(message, data=None):
     return Response({"status": True, "message": message, "data": data or {}})
+def success_responseArray(message, data=None):
+    return Response({"status": True, "message": message, "data": data or []})
 
 def _normalize_error(obj):
     # str/bytes

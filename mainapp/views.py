@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.authtoken.models import Token
-
+from .serializers import success_responseArray
 from .serializers import (
     RegisterSerializer, LoginSerializer, ProfileSerializer,
     ProfileUpdateSerializer, SendOTPSerializer, VerifyOTPSerializer
@@ -379,7 +379,7 @@ class MyAdsListView(APIView):
 
         # 4️⃣ Serialize and return
         serializer = AdDetailSerializer(ads, many=True)
-        return success_response("Ads fetched", data=serializer.data)
+        return success_responseArray("Ads fetched", data=serializer.data)
 
 class MyAdsByTokenView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -1263,18 +1263,3 @@ def qr_landing(request, code):
 
     # activated → redirect to the public ad page
     return HttpResponseRedirect(f"/ads/{qr.ad.code}")
-
-
-
-# views.py
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponseRedirect
-from django.urls import reverse
-from .models import Ad
-
-def ad_public_redirect_by_id(request, ad_id: int):
-    ad = get_object_or_404(Ad, id=ad_id, status="published")
-    target = reverse("ad_public_by_code", kwargs={"code": ad.code})
-    if request.META.get("QUERY_STRING"):
-        target = f"{target}?{request.META['QUERY_STRING']}"
-    return HttpResponseRedirect(target)
