@@ -111,6 +111,7 @@ class RegisterSerializer(serializers.Serializer):
 class LoginSerializer(serializers.Serializer):
     phone = serializers.CharField()
     password = serializers.CharField(write_only=True)
+    player_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 class ProfileSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source="profile.phone", read_only=True)

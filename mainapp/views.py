@@ -105,35 +105,57 @@ def logout(request):
     
 
 
+# views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
+
+from .serializers import LoginSerializer, ProfileSerializer  # make sure names are correct
+
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        s = LoginSerializer(data=request.data)
-        s.is_valid(raise_exception=True)
-        phone = s.validated_data["phone"]
-        password = s.validated_data["password"]
-        # username is phone
-        user = authenticate(username=phone, password=password)
-        if not user:
-            # fallback: find by phone and check password manually
-            try:
-                u = User.objects.get(username=phone)
-                if not u.check_password(password):
-                     return error_response("Invalid credentials")
-                user = u
-            except User.DoesNotExist:
-                return error_response("Invalid credentials")
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
+        phone = serializer.validated_data.get("phone")
+        password = serializer.validated_data.get("password")
+        player_id = serializer.validated_data.get("player_id")  # optional
 
+        # If you authenticate by phone, ensure you have a custom auth backend that accepts phone.
+        user = authenticate(request, username=phone, password=password)
+
+        if user is None:
+            return Response(
+                {
+                    "status": False,
+                    "code": "INVALID_CREDENTIALS",
+                    "message": "Phone or password is incorrect.",
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         token, _ = Token.objects.get_or_create(user=user)
-        return Response({
-            "status": True,
-            "message": "Logged in.",
-            "token": token.key,
-            "profile": ProfileSerializer(user).data
-        })
+
+        # Optionally save player_id
+        if player_id:
+            profile = getattr(user, "profile", None)
+            if profile:
+                profile.player_id = player_id
+                profile.save(update_fields=["player_id"])
+
+        return Response(
+            {
+                "status": True,
+                "token": token.key,
+                "user": ProfileSerializer(user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 class MeProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
