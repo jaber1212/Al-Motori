@@ -120,11 +120,12 @@ class LoginView(APIView):
             try:
                 u = User.objects.get(username=phone)
                 if not u.check_password(password):
-                    return Response({"detail": "Invalid credentials."}, status=400)
+                     return error_response("Invalid credentials")
                 user = u
             except User.DoesNotExist:
-                return error_
-                Response({"detail": "Invalid credentials."}, status=400)
+                return error_response("Invalid credentials")
+
+
 
         token, _ = Token.objects.get_or_create(user=user)
         return Response({
@@ -253,7 +254,9 @@ class CreateAdView(APIView):
             try:
                 payload["values"] = json.loads(payload["values"])
             except json.JSONDecodeError:
-                return Response({"detail": "Invalid JSON in 'values'."}, status=400)
+                                return error_response("Invalid values")
+
+
 
         # IMPORTANT:
         # If uploading files, REMOVE images/video from payload so the serializer
@@ -273,7 +276,11 @@ class CreateAdView(APIView):
         # Case A: files uploaded in multipart
         if image_files:
             if len(image_files) > MAX_IMAGES:
-                return Response({"detail": f"Max {MAX_IMAGES} images allowed"}, status=400)
+                                                 return error_response("Max {MAX_IMAGES} images allowed")
+
+                
+                
+
             for idx, f in enumerate(image_files[:MAX_IMAGES]):
                 url = _save_upload(f, subdir="ads/images")
                 AdMedia.objects.create(ad=ad, kind=AdMedia.IMAGE, url=url, order_index=idx)
