@@ -13,6 +13,7 @@ class Profile(models.Model):
     is_verified = models.BooleanField(default=False)
     op_code = models.CharField(max_length=6, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
+    player_id = models.CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username} ({self.phone})"

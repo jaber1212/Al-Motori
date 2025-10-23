@@ -17,6 +17,7 @@ from .serializers import (
     ProfileUpdateSerializer, SendOTPSerializer, VerifyOTPSerializer
 )
 
+from rest_framework.authtoken.models import Token
 
 
 
@@ -76,6 +77,32 @@ class RegisterView(APIView):
             "profile": ProfileSerializer(user.profile).data
         }, status=status.HTTP_201_CREATED)
 
+from rest_framework.decorators import (
+    api_view, permission_classes, parser_classes,
+    authentication_classes
+)
+
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+from .models import Profile
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    try:
+        # Clear player_id
+        profile = Profile.objects.get(user=request.user)
+        profile.player_id = None
+        profile.save()
+
+        # Optionally delete token
+        Token.objects.filter(user=request.user).delete()
+
+        return success_response("Logout successful. Player ID cleared and token removed.")
+    except Profile.DoesNotExist:
+        return error_response("Profile not found.")
+    
 
 
 class LoginView(APIView):
