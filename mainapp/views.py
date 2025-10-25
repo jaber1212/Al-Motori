@@ -1231,6 +1231,13 @@ class ClaimQRView(views.APIView):
         return Response({"status": True, "message": "QR linked to ad. Activate by scanning from the app."})
 
 
+from rest_framework import views, permissions, status
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.utils import timezone
+from django.http import Http404
+
 class ActivateQRView(views.APIView):
     """
     First app scan: bind if needed + activate + publish ad.
@@ -1243,8 +1250,15 @@ class ActivateQRView(views.APIView):
         s = ActivateQRSerializer(data=request.data)
         s.is_valid(raise_exception=True)
 
-        ad = get_object_or_404(Ad, id=s.validated_data["ad_id"], owner=request.user)
-        qr = get_object_or_404(QRCode, code=s.validated_data["code"])
+        try:
+            ad = get_object_or_404(Ad, id=s.validated_data["ad_id"], owner=request.user)
+        except Http404:
+            return Response({"status": False, "message": "Ad not found or not yours."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            qr = QRCode.objects.get(code=s.validated_data["code"])
+        except QRCode.DoesNotExist:
+            return Response({"status": False, "message": "Out source QR code."}, status=status.HTTP_400_BAD_REQUEST)
 
         # If already used by another ad → reject
         if qr.ad and qr.ad_id != ad.id:
@@ -1267,15 +1281,19 @@ class ActivateQRView(views.APIView):
 
         # Log + counters
         QRScanLog.objects.create(
-            qr=qr, ad=ad,
+            qr=qr,
+            ad=ad,
             ip=_client_ip(request),
             user_agent=request.META.get("HTTP_USER_AGENT"),
-            referrer=request.META.get("HTTP_REFERER")
+            referrer=request.META.get("HTTP_REFERER"),
         )
         qr.mark_scanned()
 
         public_url = f"{PUBLIC_BASE}/ads/{ad.code}"
-        return Response({"status": True, "message": "Ad published via QR.", "public_url": public_url}, status=200)
+        return Response(
+            {"status": True, "message": "Ad published via QR.", "public_url": public_url},
+            status=200
+        )
 
 
 
