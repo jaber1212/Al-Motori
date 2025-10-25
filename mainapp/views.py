@@ -1231,12 +1231,11 @@ class ClaimQRView(views.APIView):
         return Response({"status": True, "message": "QR linked to ad. Activate by scanning from the app."})
 
 
+from django.db import transaction, IntegrityError
+from django.utils import timezone
 from rest_framework import views, permissions, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from django.db import transaction
-from django.utils import timezone
-from django.http import Http404
 
 class ActivateQRView(views.APIView):
     """
@@ -1250,50 +1249,68 @@ class ActivateQRView(views.APIView):
         s = ActivateQRSerializer(data=request.data)
         s.is_valid(raise_exception=True)
 
-        try:
-            ad = get_object_or_404(Ad, id=s.validated_data["ad_id"], owner=request.user)
-        except Http404:
-            return Response({"status": False, "message": "Ad not found or not yours."}, status=status.HTTP_404_NOT_FOUND)
+        # Ensure the ad belongs to the user
+        ad = get_object_or_404(Ad, id=s.validated_data["ad_id"], owner=request.user)
 
-        try:
-            qr = QRCode.objects.get(code=s.validated_data["code"])
-        except QRCode.DoesNotExist:
+        # Custom "out source" handling instead of Http404 HTML
+        qr = QRCode.objects.select_for_update().filter(code=s.validated_data["code"]).first()
+        if not qr:
             return Response({"status": False, "message": "Out source QR code."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # If already used by another ad → reject
-        if qr.ad and qr.ad_id != ad.id:
-            return Response({"status": False, "message": "QR already assigned to another ad."}, status=400)
+        # If QR already assigned to another ad → reject
+        if qr.ad_id and qr.ad_id != ad.id:
+            return Response({"status": False, "message": "QR already assigned to another ad."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Bind if not bound
+        # If QR already bound to this ad AND already activated AND ad already published → idempotent success
+        if (qr.ad_id == ad.id) and qr.is_activated and (ad.status == "published"):
+            public_url = f"{PUBLIC_BASE}/ads/{ad.code}"
+            # Optional: still record a scan, but guard against log uniqueness/NOT NULL issues
+            try:
+                QRScanLog.objects.create(
+                    qr=qr, ad=ad,
+                    ip=_client_ip(request),
+                    user_agent=request.META.get("HTTP_USER_AGENT"),
+                    referrer=request.META.get("HTTP_REFERER"),
+                )
+                qr.mark_scanned()
+            except IntegrityError:
+                # Swallow scan-log duplicates/constraints; activation remains idempotent
+                pass
+            return Response({"status": True, "message": "Ad already active.", "public_url": public_url}, status=status.HTTP_200_OK)
+
+        # Otherwise proceed: bind if needed
         if not qr.ad_id:
             qr.ad = ad
             qr.is_assigned = True
 
-        # Activate once
+        # Activate if needed
         if not qr.is_activated:
             qr.is_activated = True
-            if ad.status != "published":
-                ad.status = "published"
-                ad.published_at = timezone.now()
-                ad.save(update_fields=["status", "published_at"])
 
+        # Publish if needed
+        if ad.status != "published":
+            ad.status = "published"
+            ad.published_at = timezone.now()
+            ad.save(update_fields=["status", "published_at"])
+
+        # Persist QR changes (safe even if values unchanged)
         qr.save(update_fields=["ad", "is_assigned", "is_activated"])
 
-        # Log + counters
-        QRScanLog.objects.create(
-            qr=qr,
-            ad=ad,
-            ip=_client_ip(request),
-            user_agent=request.META.get("HTTP_USER_AGENT"),
-            referrer=request.META.get("HTTP_REFERER"),
-        )
-        qr.mark_scanned()
+        # Log scan (guard against IntegrityError to avoid 500s)
+        try:
+            QRScanLog.objects.create(
+                qr=qr, ad=ad,
+                ip=_client_ip(request),
+                user_agent=request.META.get("HTTP_USER_AGENT"),
+                referrer=request.META.get("HTTP_REFERER"),
+            )
+            qr.mark_scanned()
+        except IntegrityError:
+            # Don’t fail the whole request if the log row violates a constraint
+            pass
 
         public_url = f"{PUBLIC_BASE}/ads/{ad.code}"
-        return Response(
-            {"status": True, "message": "Ad published via QR.", "public_url": public_url},
-            status=200
-        )
+        return Response({"status": True, "message": "Ad published via QR.", "public_url": public_url}, status=status.HTTP_200_OK)
 
 
 
