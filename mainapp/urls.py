@@ -2,20 +2,21 @@
 from django.contrib import admin
 from django.urls import path
 from mainapp import views as v   # 👈 avoid wildcard imports
-
+from  mainapp.authViews import *
 app_name = "mainapp"
 
 urlpatterns = [
     # Auth
-    path("api/auth/register",  v.RegisterView.as_view(), name="auth-register"),
-    path("api/auth/login",     v.LoginView.as_view(),    name="auth-login"),
-    path("api/auth/send-otp",  v.SendOTPView.as_view(),  name="auth-send-otp"),
-    path("api/auth/verify-otp",v.VerifyOTPView.as_view(),name="auth-verify-otp"),
-    path("home",               v.home,                   name="home"),
+    path("home", v.home, name="home"),
+
+    path("api/auth/register",  RegisterView.as_view(), name="auth-register"),
+    path("api/auth/login",     LoginView.as_view(),    name="auth-login"),
+    path("api/auth/send-otp",  SendOTPView.as_view(),  name="auth-send-otp"),
+    path("api/auth/verify-otp",VerifyOTPView.as_view(),name="auth-verify-otp"),
 
     # Profile
-    path("api/profile/me",     v.MeProfileView.as_view(), name="profile-me"),
-    path("api/logout/",        v.logout,                  name="auth-logout"),
+    path("api/profile/me",     MeProfileView.as_view(), name="profile-me"),
+    path("api/logout/",        logout,                  name="auth-logout"),
 
     # Ads (create/edit/publish)
     path("api/ads/create",     v.CreateAdView.as_view(),   name="ads-create"),
