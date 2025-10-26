@@ -120,7 +120,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["first_name", "phone", "is_verified", "op_code","email"]  # first_name acts as name
+        fields = ["name", "phone", "is_verified", "op_code","email"]  # first_name acts as name
 
 class ProfileUpdateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=120)
