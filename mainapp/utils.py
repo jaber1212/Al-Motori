@@ -55,7 +55,6 @@ from rest_framework import status as http
 from rest_framework.exceptions import ErrorDetail
 
 # 👉 flip this to True if you really want errors to also return status: True
-ALWAYS_TRUE_FOR_ERRORS = False
 
 def api_ok(message: str = "OK", data=None, code: str = "OK", http_status=http.HTTP_200_OK):
     return Response({
@@ -72,9 +71,8 @@ def api_err(message: str = "Issue.", errors=None, code: str = "ERROR", http_stat
     - If you prefer real HTTP error codes, change http_status above (e.g., 400/401/403).
     """
     # If you want conventional behavior, set ALWAYS_TRUE_FOR_ERRORS = False
-    status_field = True if ALWAYS_TRUE_FOR_ERRORS else False
     return Response({
-        "status": status_field,
+        "status": False,
         "message": _flatten_message(message),
         "code": code,
         "errors": errors if errors is not None else {}
