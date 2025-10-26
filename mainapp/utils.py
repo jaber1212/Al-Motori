@@ -47,9 +47,6 @@ def first_error_message(detail):
 
 
 
-def generate_otp():
-    return f"{random.randint(100000, 999999)}"
-
 
 
 # mainapp/utils.py
@@ -92,3 +89,17 @@ def _flatten_message(detail):
     if isinstance(detail, ErrorDetail):
         return str(detail)
     return str(detail or "Issue.")
+
+
+
+# utils.py (optional helpers)
+def ok_obj(message="OK", data=None, code="OK", http_status=http.HTTP_200_OK):
+    """Always return an object in data ({} if None)."""
+    if data is None: data = {}
+    return api_ok(message, data=data, code=code, http_status=http_status)
+
+def ok_list(message="OK", data=None, code="OK", http_status=http.HTTP_200_OK):
+    """Always return a list in data ([] if None)."""
+    if data is None: data = []
+    # api_ok accepts lists fine; only default in api_ok is {}, but we override it
+    return api_ok(message, data=data, code=code, http_status=http_status)
