@@ -55,12 +55,15 @@ def _normalize_error(obj):
 
     # fallback
     return obj
-
 def error_response(message):
-    return Response(
-        {"status": False, "message": _normalize_error(message)},
-        status=status.HTTP_400_BAD_REQUEST
-    )
+    if isinstance(message, dict):
+        # flatten nested dict to first message
+        first_key = next(iter(message))
+        message = message[first_key]
+    if isinstance(message, list) and message:
+        message = message[0]
+    return Response({"status": False, "message": str(message)}, status=status.HTTP_400_BAD_REQUEST)
+
 # -----------------------------------------------------------
 
 def generate_otp():
@@ -74,12 +77,12 @@ class RegisterSerializer(serializers.Serializer):
 
     def validate_phone(self, v):
         if Profile.objects.filter(phone=v).exists():
-            raise serializers.ValidationError("Phone already registered.")
+            raise error_response("Phone already registered.")
         return v
 
     def validate_email(self, v):
         if Profile.objects.filter(email=v).exists():
-            raise serializers.ValidationError("Email already registered.")
+            raise error_response("Email already registered.")
         return v
 
 from django.db import transaction, IntegrityError
@@ -102,7 +105,8 @@ def create(self, validated):
                 op_code=otp, is_verified=False
             )
     except IntegrityError as e:
-        raise serializers.ValidationError("Account already exists with this phone/email.")
+        raise error_response("Account already exists with this phone/email.")
+
     return user
 
 
