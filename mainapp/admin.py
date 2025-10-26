@@ -21,9 +21,9 @@ class ProfileInline(admin.StackedInline):
 
 class UserAdmin(BaseUserAdmin):
     inlines = (ProfileInline,)
-    list_display = ("username", "email", "first_name", "last_name", "is_staff", "is_superuser")
+    list_display = ("username", "email", "name", "last_name", "is_staff", "is_superuser")
     list_filter  = ("is_staff", "is_superuser", "is_active", "groups")
-    search_fields = ("username", "email", "first_name", "last_name")
+    search_fields = ("username", "email", "name", "last_name")
 
 # unregister + re-register User with the inline
 try:

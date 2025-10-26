@@ -54,6 +54,8 @@ def first_error_message(detail):
     # Fallback (string or unknown type)
     return str(detail)
 
+from django.db import transaction
+
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -62,20 +64,28 @@ class RegisterView(APIView):
         try:
             s.is_valid(raise_exception=True)
         except ValidationError as e:
-            return Response(
-                {"status": False, "message": first_error_message(e.detail)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return error_response(e.detail)
 
-        user = s.save()
-        token, _ = Token.objects.get_or_create(user=user)
+        with transaction.atomic():
+            user = s.save()
+            token, _ = Token.objects.get_or_create(user=user)
+            profile_data = ProfileSerializer(user.profile).data
+
         return Response({
             "status": True,
             "message": "Registered. OTP sent.",
             "token": token.key,
-            # If your serializer is for Profile, pass user.profile (not user)
-            "profile": ProfileSerializer(user.profile).data
+            "profile": profile_data
         }, status=status.HTTP_201_CREATED)
+
+
+
+
+
+
+
+
+
 
 from rest_framework.decorators import (
     api_view, permission_classes, parser_classes,

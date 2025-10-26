@@ -82,30 +82,28 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError("Email already registered.")
         return v
 
-    def create(self, validated):
-        name = validated["name"]
-        phone = validated["phone"]
-        email = validated["email"]
-        password = validated["password"]
+from django.db import transaction, IntegrityError
 
-        user = User.objects.create(
-            username=phone,
-            first_name=name,
-            email=email,  # ✅ store email in User too
-            password=make_password(password)
-        )
+def create(self, validated):
+    name = validated["name"]; phone = validated["phone"]
+    email = validated["email"]; password = validated["password"]
 
-        otp = generate_otp()
-        Profile.objects.create(
-            user=user,
-            name=name,
-            phone=phone,
-            email=email,  # ✅ added
-            op_code=otp,
-            is_verified=False
-        )
-        # TODO: send OTP via SMS or email here
-        return user
+    try:
+        with transaction.atomic():
+            user = User.objects.create(
+                username=phone,
+                first_name=name,
+                email=email,
+                password=make_password(password),
+            )
+            otp = generate_otp()
+            Profile.objects.create(
+                user=user, name=name, phone=phone, email=email,
+                op_code=otp, is_verified=False
+            )
+    except IntegrityError as e:
+        raise serializers.ValidationError("Account already exists with this phone/email.")
+    return user
 
 
 class LoginSerializer(serializers.Serializer):
@@ -113,14 +111,27 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
     player_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
+from rest_framework import serializers
+from .models import Profile
+
 class ProfileSerializer(serializers.ModelSerializer):
-    phone = serializers.CharField(source="profile.phone", read_only=True)
-    is_verified = serializers.BooleanField(source="profile.is_verified", read_only=True)
-    op_code = serializers.CharField(source="profile.op_code", read_only=True)  # expose if you want
+    user_first_name = serializers.CharField(source="user.first_name", read_only=True)
+    username       = serializers.CharField(source="user.username", read_only=True)
 
     class Meta:
-        model = User
-        fields = ["name", "phone", "is_verified", "op_code","email"]  # first_name acts as name
+        model = Profile
+        fields = [
+            "id",
+            "name",          # Profile.name
+            "phone",         # Profile.phone
+            "email",         # Profile.email
+            "is_verified",
+            "op_code",       # remove if you don't want to expose it
+            "player_id",
+            "updated_at",
+            "user_first_name",
+            "username",
+        ]
 
 class ProfileUpdateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=120)
@@ -379,7 +390,6 @@ from rest_framework import serializers
 class ClaimQRSerializer(serializers.Serializer):
     ad_id = serializers.IntegerField()
     code  = serializers.CharField(max_length=24)
-
 class ActivateQRSerializer(serializers.Serializer):
     ad_id = serializers.IntegerField()
     code  = serializers.CharField(max_length=24)
