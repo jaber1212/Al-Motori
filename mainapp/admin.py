@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile
+from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile,QRCode,QRScanLog
 
 # --- Profile as its own model (sidebar) ---
 @admin.register(Profile)
