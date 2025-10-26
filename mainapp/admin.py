@@ -2,15 +2,20 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile
+from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile, QRCode, QRScanLog
 
-# --- Profile as its own model (so it shows in the sidebar) ---
+# --- Profile as its own model (sidebar) ---
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display  = ("user", "name", "phone", "is_verified", "op_code", "updated_at")
+    list_display  = ("user", "name", "phone", "is_verified", "masked_op_code", "updated_at")
     search_fields = ("user__username", "user__email", "phone", "name")
     list_filter   = ("is_verified",)
     readonly_fields = ("updated_at",)
+
+    def masked_op_code(self, obj):
+        # avoid showing OTP in plaintext
+        return f"***{obj.op_code[-2:]}" if obj.op_code else "-"
+    masked_op_code.short_description = "OTP"
 
 # --- Inline profile on the User edit page ---
 class ProfileInline(admin.StackedInline):
@@ -21,9 +26,15 @@ class ProfileInline(admin.StackedInline):
 
 class UserAdmin(BaseUserAdmin):
     inlines = (ProfileInline,)
-    list_display = ("username", "email", "name", "last_name", "is_staff", "is_superuser")
+
+    # Use proper User fields; add a method to display Profile.name if you like
+    list_display = ("username", "email", "first_name", "last_name", "profile_name", "is_staff", "is_superuser")
     list_filter  = ("is_staff", "is_superuser", "is_active", "groups")
-    search_fields = ("username", "email", "name", "last_name")
+    search_fields = ("username", "email", "first_name", "last_name", "profile__name")
+
+    def profile_name(self, obj):
+        return getattr(getattr(obj, "profile", None), "name", "")
+    profile_name.short_description = "Profile name"
 
 # unregister + re-register User with the inline
 try:
@@ -65,8 +76,6 @@ class AdAdmin(admin.ModelAdmin):
     list_filter  = ("status","category","city")
     search_fields= ("code","title","owner__username")
     inlines = [AdMediaInline, AdFieldValueInline]
-from django.contrib import admin
-from .models import QRCode, QRScanLog
 
 @admin.register(QRCode)
 class QRCodeAdmin(admin.ModelAdmin):
