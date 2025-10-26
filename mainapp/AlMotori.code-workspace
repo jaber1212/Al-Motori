@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "AlMotori",
+			"path": ".."
+		},
+		{
+			"name": "workflows",
+			"path": "../../vital_sos/.github/workflows"
+		}
+	],
+	"settings": {}
+}

@@ -74,7 +74,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ],
-    "EXCEPTION_HANDLER": "mainapp.exception_handler",
+    "EXCEPTION_HANDLER": "mainapp.exception_handler.custom_exception_handler",
 
 }
 
@@ -153,7 +153,7 @@ DATABASES = {
         },
     }
 }
-#
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
