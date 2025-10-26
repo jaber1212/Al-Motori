@@ -2,25 +2,35 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.http import HttpResponse
+from mainapp.serializers.coreSerializers import (
+    CategorySchemaSerializer,
+    AdCreateSerializer, AdUpdateSerializer,
+    AdDetailSerializer, PublicAdSerializer,AdDetailSerializer,PublicFieldSerializer,ClaimQRSerializer,ActivateQRSerializer
+)
+from mainapp.utils import error_response, success_response  # your custom response helpers
+from django.shortcuts import get_object_or_404
+from django.db.models import Prefetch
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import permissions, status
+from rest_framework.authtoken.models import Token
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+from mainapp.models import AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia
+from rest_framework.views import APIView
+from rest_framework import permissions
+from rest_framework.authtoken.models import Token
+from mainapp.models import Ad
 
 def home(request):
     return HttpResponse("Hello from Main App 🚀")
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, permissions
-from rest_framework.authtoken.models import Token
-from .serializers import success_responseArray
+
+from mainapp.utils import success_responseArray
 
 
-from rest_framework.authtoken.models import Token
 
-from .utils import first_error_message,success_response,error_response
+from mainapp.utils import first_error_message,success_response,error_response
 
-import json, os, uuid
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 
 def _save_upload(file_obj, subdir="ads"):
     name, ext = os.path.splitext(file_obj.name)
@@ -47,12 +57,7 @@ from rest_framework.authtoken.models import Token
 # ===== Ads Behaviors (GET/POST only) =====
 
 
-from .models import Ad, AdCategory, AdMedia, FieldDefinition, AdFieldValue
-from .serializers import (
-    CategorySchemaSerializer,
-    AdCreateSerializer, AdUpdateSerializer,
-    AdDetailSerializer, PublicAdSerializer,
-)
+from mainapp.models import Ad, AdCategory, AdMedia, FieldDefinition, AdFieldValue
 
 MAX_IMAGES = 12
 
@@ -62,7 +67,7 @@ class CategorySchemaView(APIView):
         cat = get_object_or_404(AdCategory, key=category_key)
         return Response(CategorySchemaSerializer(cat).data)
 
-# views.py
+# coreViews.py
 import json, os, uuid
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -241,12 +246,6 @@ class UpdateAdView(APIView):
                 AdMedia.objects.create(ad=ad, kind=AdMedia.VIDEO, url=v, order_index=0)
 
         return ok("Ad updated successfully")
-from rest_framework.views import APIView
-from rest_framework import permissions
-from rest_framework.authtoken.models import Token
-from .models import Ad
-from .serializers import AdDetailSerializer
-from .serializers import error_response, success_response  # your custom response helpers
 
 class MyAdsListView(APIView):
     permission_classes = [permissions.AllowAny]  # since we authenticate manually
@@ -358,19 +357,6 @@ def fail(message="Failed", *, errors=None, status_code=http_status.HTTP_400_BAD_
 
 
 
-from django.shortcuts import get_object_or_404
-from django.db.models import Prefetch
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import permissions, status
-from rest_framework.authtoken.models import Token
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-
-from .models import AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia
-from .serializers import (
-    PublicFieldSerializer,  # from your serializers.py (the schema field serializer)
-    AdCreateSerializer, AdUpdateSerializer, AdDetailSerializer
-)
 
 # ---------- small helpers ----------
 
@@ -928,10 +914,10 @@ class AdMediaView(APIView):
         return (image_files, video_file)
 
 
-# views.py
+# coreViews.py
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Prefetch
-from .models import Ad, AdMedia, AdFieldValue, FieldDefinition
+from mainapp.models import Ad, AdMedia, AdFieldValue, FieldDefinition
 
 def _lang(request):
     """Decide language from ?lang=ar|en, header, or default."""
@@ -956,7 +942,7 @@ def _format_value(fd: FieldDefinition, value):
             return ", ".join([str(v) for v in value])
     return str(value)
 
-# views.py
+# coreViews.py
 def ad_public_page_by_code(request, code: str):
     """
     Public ad page by code (only 'published' ads are shown).
@@ -1052,9 +1038,8 @@ from django.db import transaction
 from rest_framework import permissions, status, views
 from rest_framework.response import Response
 
-from .models import Ad
-from .models import QRCode, QRScanLog
-from .serializers import ClaimQRSerializer, ActivateQRSerializer
+from mainapp.models import Ad
+from mainapp.models import QRCode, QRScanLog
 
 PUBLIC_BASE = "https://motori.a.alce-qa.com"  # edit to your domain
 
@@ -1174,7 +1159,7 @@ class ActivateQRView(views.APIView):
 
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
-from .models import QRCode, QRScanLog
+from mainapp.models import QRCode, QRScanLog
 
 def qr_landing(request, code):
     qr = get_object_or_404(QRCode, code=code)

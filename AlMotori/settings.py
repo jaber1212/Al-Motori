@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-xh-_=4%%$#c5@vv+i-ad+57j##$lcrp%)!-l6aknp_h*4%-z-2
 DEBUG = True
 
 # python manage.py 
-ALLOWED_HOSTS = ["motori.a.alce-qa.com", "www.motori.a.alce-qa.com"]
+ALLOWED_HOSTS = ["motori.a.alce-qa.com", "www.motori.a.alce-qa.com","127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://motori.a.alce-qa.com",
@@ -73,8 +73,12 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
-    ]
+    ],
+    "EXCEPTION_HANDLER": "mainapp.exception_handler",
+
 }
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -121,25 +125,11 @@ WSGI_APPLICATION = 'AlMotori.wsgi.application'
 # settings.py
 import os
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": "motori",
-        "USER": "mj",
-        "PASSWORD": "g100g100Aa$$",
-        "HOST": "localhost",  # or your DB server/VPS IP
-        "PORT": "3306",
-        "OPTIONS": {
-            "charset": "utf8mb4",
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES', innodb_strict_mode=1",
-        },
-    }
-}
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.mysql",
-#         "NAME": "artlinew_Motori",
-#         "USER": "artlinew_Motori_Admin",
+#         "NAME": "motori",
+#         "USER": "mj",
 #         "PASSWORD": "g100g100Aa$$",
 #         "HOST": "localhost",  # or your DB server/VPS IP
 #         "PORT": "3306",
@@ -149,6 +139,20 @@ DATABASES = {
 #         },
 #     }
 # }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "artlinew_Motori",
+        "USER": "artlinew_Motori_Admin",
+        "PASSWORD": "g100g100Aa$$",
+        "HOST": "localhost",  # or your DB server/VPS IP
+        "PORT": "3306",
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES', innodb_strict_mode=1",
+        },
+    }
+}
 #
 
 # Password validation
