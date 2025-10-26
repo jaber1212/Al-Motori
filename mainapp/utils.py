@@ -65,7 +65,7 @@ def api_ok(message: str = "OK", data=None, code: str = "OK", http_status=http.HT
         "data": data if data is not None else {}
     }, status=http_status)
 
-def api_err(message: str = "Issue.", errors=None, code: str = "ERROR", http_status=http.HTTP_200_OK):
+def api_err(message: str = "Issue.", errors=None, code: str = "ERROR", http_status=http.HTTP_400_BAD_REQUEST):
     """
     Normalized error response.
     - By default returns HTTP 200 with your requested shape.
