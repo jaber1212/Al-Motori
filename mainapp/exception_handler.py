@@ -48,7 +48,7 @@ def custom_exception_handler(exc, context):
             message=msg,
             errors=payload,                    # ← details you were missing
             code=code,
-            http_status=http.HTTP_200_OK       # keep 200 as you wanted
+            http_status=http.HTTP_400_BAD_REQUEST       # keep 200 as you wanted
         )
 
     # 2) Unhandled server errors
@@ -87,7 +87,7 @@ def custom_exception_handler(exc, context):
         message=base_msg if not want_debug else (str(exc) or base_msg),
         errors=errors,
         code=code,
-        http_status=http.HTTP_200_OK
+        http_status=http.HTTP_400_BAD_REQUEST
     )
 
 def _first_message(detail):
