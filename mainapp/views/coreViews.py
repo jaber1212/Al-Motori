@@ -5,8 +5,19 @@ from django.http import HttpResponse
 from mainapp.serializers.coreSerializers import (
     CategorySchemaSerializer,
     AdCreateSerializer, AdUpdateSerializer,
-    AdDetailSerializer, PublicAdSerializer,AdDetailSerializer,PublicFieldSerializer,ClaimQRSerializer
+    AdDetailSerializer, PublicAdSerializer,AdDetailSerializer,PublicFieldSerializer,ClaimQRSerializer,ActivateQRSerializer
 )
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.db import transaction
+from rest_framework import permissions, status, views
+from rest_framework.response import Response
+
+from mainapp.models import Ad
+from mainapp.models import QRCode, QRScanLog
+
+PUBLIC_BASE = "https://motori.a.alce-qa.com"  # edit to your domain
+
 from mainapp.utils import error_response, success_response  # your custom response helpers
 from django.shortcuts import get_object_or_404
 from django.db.models import Prefetch
@@ -1032,17 +1043,6 @@ def ad_public_page_by_id(request, ad_id: int):
 
 
 
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from django.db import transaction
-from rest_framework import permissions, status, views
-from rest_framework.response import Response
-
-from mainapp.models import Ad
-from mainapp.models import QRCode, QRScanLog
-from mainapp.serializers import ClaimQRSerializer, ActivateQRSerializer
-
-PUBLIC_BASE = "https://motori.a.alce-qa.com"  # edit to your domain
 
 def _client_ip(request):
     # simple best-effort; adjust if behind proxy (use X-Forwarded-For if trusted)
