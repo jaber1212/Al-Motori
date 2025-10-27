@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>motoria — Sell Your Car Faster</title>
+<meta name="description" content="motoria is the fastest way to create, promote, and sell your car ads. Create a listing in minutes, share a smart QR, and close deals quickly.">
+<meta name="color-scheme" content="light dark">
+<style>
+  /* ---------- Base ---------- */
+  html,body{margin:0;padding:0}
+  body{
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,Helvetica,sans-serif;
+    font-size:16px; line-height:1.6; color:#111827; background:#ffffff;
+  }
+  *{box-sizing:border-box}
+  img{max-width:100%; display:block}
+  a{color:#0d6efd; text-decoration:none}
+  a:hover{text-decoration:underline}
+  .container{max-width:1140px; padding:0 20px; margin:0 auto}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:12px 18px; border-radius:12px; border:1px solid #0d6efd;
+    background:#0d6efd; color:#fff; font-weight:700; box-shadow:0 6px 18px rgba(13,110,253,.25);
+    transition:.2s ease transform,.2s ease box-shadow;
+  }
+  .btn:hover{transform:translateY(-2px); box-shadow:0 10px 24px rgba(13,110,253,.3)}
+  .btn.outline{background:transparent; color:#0d6efd}
+
+  /* ---------- Header / Nav ---------- */
+  .nav{
+    position:sticky; top:0; z-index:50; backdrop-filter:saturate(180%) blur(8px);
+    background:rgba(255,255,255,.8); border-bottom:1px solid rgba(0,0,0,.06);
+  }
+  .nav .row{display:flex; align-items:center; justify-content:space-between; height:64px}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.3px}
+  .logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#0d6efd,#7bb6ff);color:#fff;box-shadow:0 6px 16px rgba(13,110,253,.35)}
+  .navlinks{display:flex; gap:18px; align-items:center}
+  .navlinks a{font-weight:600; color:#334155}
+  .navlinks .btn{padding:10px 14px}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative; overflow:hidden; padding:72px 0 40px; background:
+      radial-gradient(800px 400px at 85% -10%, rgba(13,110,253,.12), transparent 60%),
+      radial-gradient(600px 260px at -10% 110%, rgba(13,110,253,.10), transparent 60%),
+      linear-gradient(180deg, rgba(13,110,253,.05), rgba(255,255,255,0));
+    border-bottom:1px solid rgba(0,0,0,.06);
+  }
+  .hero .grid{display:grid; grid-template-columns:1.1fr .9fr; gap:28px; align-items:center}
+  .eyebrow{display:inline-block; font-size:12px; font-weight:800; letter-spacing:.4px; color:#0d6efd; text-transform:uppercase}
+  h1{font-size:44px; line-height:1.1; margin:10px 0 12px}
+  .lead{font-size:18px; color:#475569; margin-bottom:18px}
+  .cta-row{display:flex; gap:12px; flex-wrap:wrap}
+  .trust{display:flex; gap:16px; margin-top:18px; color:#64748b; font-size:14px; align-items:center}
+  .badge{display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:999px; background:#f1f5f9; border:1px solid #e2e8f0; color:#0f172a; font-weight:700}
+  .device{
+    border-radius:18px; border:1px solid rgba(0,0,0,.08); background:#0b1020;
+    padding:14px; box-shadow:0 10px 28px rgba(2,6,23,.45);
+  }
+  .device .screen{
+    border-radius:14px; background:#0f172a; padding:18px; color:#e5e7eb; min-height:320px;
+    background-image:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
+  }
+  .screen h3{margin:0 0 8px; font-size:18px}
+  .statbar{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px}
+  .chip{border-radius:10px; border:1px solid rgba(255,255,255,.12); padding:10px; text-align:center; background:rgba(255,255,255,.03)}
+  .qr{
+    margin-top:14px; display:flex; gap:12px; align-items:center;
+    padding:12px; border:1px dashed rgba(255,255,255,.25); border-radius:12px;
+    background:rgba(255,255,255,.03)
+  }
+  .qr svg{width:44px; height:44px}
+
+  /* ---------- Features ---------- */
+  .section{padding:60px 0}
+  .section .head{text-align:center; max-width:800px; margin:0 auto 26px}
+  .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+  .card{
+    padding:20px; border-radius:16px; background:#ffffff;
+    border:1px solid rgba(0,0,0,.06); box-shadow:0 2px 0 rgba(0,0,0,.04)
+  }
+  .card h3{margin:8px 0 6px}
+  .icon{
+    width:40px; height:40px; display:grid; place-items:center; border-radius:10px;
+    background:linear-gradient(135deg,#0d6efd,#7bb6ff); color:#fff; box-shadow:0 6px 16px rgba(13,110,253,.35)
+  }
+
+  /* ---------- How It Works ---------- */
+  .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; counter-reset:step}
+  .step{background:#0f172a; color:#e5e7eb; border:1px solid rgba(255,255,255,.1); border-radius:16px; padding:20px}
+  .step:before{
+    counter-increment:step; content:counter(step);
+    display:inline-grid; place-items:center; width:34px;height:34px; border-radius:999px;
+    background:#0d6efd; color:#fff; font-weight:800; margin-bottom:8px
+  }
+
+  /* ---------- Showcase ---------- */
+  .show{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .mock{
+    border-radius:16px; border:1px solid rgba(0,0,0,.08); background:#fafafa; padding:16px
+  }
+  .mock h4{margin:0 0 8px}
+  .table{width:100%; border-collapse:collapse; font-size:14px}
+  .table th,.table td{border:1px solid #e5e7eb; padding:10px; text-align:left}
+  .table th{background:#f1f5f9}
+
+  /* ---------- Pricing ---------- */
+  .pricing{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:12px}
+  .plan{
+    border-radius:16px; border:1px solid rgba(0,0,0,.08); background:#ffffff; padding:20px
+  }
+  .plan h3{margin:0}
+  .price{font-size:34px; font-weight:900; margin:6px 0}
+  .ul{list-style:none; padding:0; margin:12px 0 16px}
+  .ul li{padding:6px 0}
+  .plan.featured{border:2px solid #0d6efd; box-shadow:0 12px 28px rgba(13,110,253,.15)}
+
+  /* ---------- Testimonials ---------- */
+  .quotes{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .quote{
+    background:#0f172a; color:#e5e7eb; border:1px solid rgba(255,255,255,.1);
+    border-radius:16px; padding:18px
+  }
+
+  /* ---------- FAQ ---------- */
+  .faq{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .q{border:1px solid #e5e7eb; border-radius:12px; padding:16px; background:#fff}
+
+  /* ---------- Footer ---------- */
+  .cta{
+    text-align:center; padding:48px 0; border-top:1px solid rgba(0,0,0,.06);
+    background:linear-gradient(180deg,#f8fbff,#ffffff)
+  }
+  .foot{
+    padding:24px 0; color:#64748b; font-size:14px; text-align:center; border-top:1px solid #e5e7eb
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:1024px){
+    .hero .grid{grid-template-columns:1fr}
+    .cards{grid-template-columns:1fr 1fr}
+    .steps{grid-template-columns:1fr 1fr 1fr}
+    .show{grid-template-columns:1fr}
+    .pricing{grid-template-columns:1fr 1fr 1fr}
+    .quotes{grid-template-columns:1fr}
+    .faq{grid-template-columns:1fr}
+  }
+  @media (max-width:720px){
+    h1{font-size:36px}
+    .cards{grid-template-columns:1fr}
+    .steps{grid-template-columns:1fr}
+    .pricing{grid-template-columns:1fr}
+  }
+
+  /* ---------- Dark Mode ---------- */
+  @media (prefers-color-scheme: dark){
+    body{background:#0b0c10; color:#e6edf3}
+    .nav{background:rgba(11,12,16,.7); border-color:rgba(255,255,255,.08)}
+    .navlinks a{color:#cbd5e1}
+    .hero{border-color:rgba(255,255,255,.08)}
+    .card{background:#0f172a; border-color:rgba(255,255,255,.1); color:#e6edf3}
+    .mock{background:#0b1020; border-color:rgba(255,255,255,.12)}
+    .table th{background:#0b1020; color:#e6edf3}
+    .table td,.table th{border-color:rgba(255,255,255,.14)}
+    .plan{background:#0f172a; border-color:rgba(255,255,255,.1)}
+    .q{background:#0f172a; border-color:rgba(255,255,255,.14)}
+    .cta{background:linear-gradient(180deg,#0b1020,#0b0c10); border-color:rgba(255,255,255,.08)}
+    .foot{border-color:rgba(255,255,255,.12)}
+    .badge{background:#0b1020; color:#e6edf3; border-color:rgba(255,255,255,.14)}
+    .trust{color:#9aa4af}
+    .lead{color:#c3c9d1}
+  }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<header class="nav">
+  <div class="container row">
+    <div class="brand">
+      <div class="logo">M</div>
+      <span>motoria</span>
+    </div>
+    <nav class="navlinks">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a class="btn outline" href="#download">Download App</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="grid">
+      <div>
+        <span class="eyebrow">Sell Faster • Share Smarter</span>
+        <h1>Create your car ad in minutes. Share a smart QR. Close the deal.</h1>
+        <p class="lead">
+          motoria is the quickest way to list, promote, and sell your car. Build a beautiful ad,
+          link it to a unique QR code, and let buyers scan to view all details instantly.
+        </p>
+        <div class="cta-row">
+          <a class="btn" href="#download">Get the App</a>
+          <a class="btn outline" href="#features">Explore Features</a>
+        </div>
+        <div class="trust">
+          <span class="badge">
+            <!-- shield icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 4v5c0 5-3.5 9-7 9s-7-4-7-9V7l7-4z" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>
+            Secure & fast
+          </span>
+          Trusted by private sellers & small dealers
+        </div>
+      </div>
+      <div>
+        <div class="device">
+          <div class="screen">
+            <h3>Ad Preview — Honda Civic 2018</h3>
+            <p>• 92,000 km • Automatic • Full service history • Amman</p>
+            <div class="statbar">
+              <div class="chip">Views<br><strong>1,284</strong></div>
+              <div class="chip">Saves<br><strong>73</strong></div>
+              <div class="chip">Leads<br><strong>18</strong></div>
+            </div>
+            <div class="qr">
+              <!-- simple QR placeholder -->
+              <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
+                <rect x="2" y="2" width="24" height="24" stroke="#7bb6ff" stroke-width="3"/>
+                <rect x="54" y="2" width="24" height="24" stroke="#7bb6ff" stroke-width="3"/>
+                <rect x="2" y="54" width="24" height="24" stroke="#7bb6ff" stroke-width="3"/>
+                <rect x="30" y="30" width="20" height="20" fill="#7bb6ff"/>
+              </svg>
+              <div>
+                <strong>Scan to view ad</strong><br>
+                Public link opens the full details page instantly.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" class="section">
+  <div class="container">
+    <div class="head">
+      <h2>Everything you need to sell your car</h2>
+      <p style="color:#475569">Powerful tools that make your listing stand out and reach buyers wherever they are.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="icon">✦</div>
+        <h3>Beautiful Listings</h3>
+        <p>Clear specs, photo gallery, and highlights—optimized for web and mobile.</p>
+      </div>
+      <div class="card">
+        <div class="icon">#</div>
+        <h3>Smart QR Codes</h3>
+        <p>Print or share a unique QR that opens your public ad page with one scan.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚡</div>
+        <h3>Instant Sharing</h3>
+        <p>Share your ad link across WhatsApp, social, and marketplaces in one tap.</p>
+      </div>
+      <div class="card">
+        <div class="icon">👁</div>
+        <h3>Views & Leads</h3>
+        <p>Track views, saves, and messages to see what’s working.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🛡</div>
+        <h3>Fraud Protection</h3>
+        <p>Automated checks help keep your listing and buyers safe.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🧭</div>
+        <h3>Local-Friendly</h3>
+        <p>Designed for fast performance and clear contact options.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how" class="section" style="padding-top:0">
+  <div class="container">
+    <div class="head">
+      <h2>How it works</h2>
+      <p style="color:#475569">From zero to live in three simple steps.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <h3>Create</h3>
+        <p>Add your car details, price, and photos. Preview your ad instantly.</p>
+      </div>
+      <div class="step">
+        <h3>Link</h3>
+        <p>Generate your unique QR and public link with one tap.</p>
+      </div>
+      <div class="step">
+        <h3>Share</h3>
+        <p>Print the QR on your car window, send the link, and start getting leads.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Showcase -->
+<section class="section" style="padding-top:32px">
+  <div class="container">
+    <div class="show">
+      <div class="mock">
+        <h4>Sample Listing Details</h4>
+        <table class="table">
+          <tr><th>Make / Model</th><td>Toyota Corolla</td></tr>
+          <tr><th>Year</th><td>2019</td></tr>
+          <tr><th>Mileage</th><td>68,500 km</td></tr>
+          <tr><th>Transmission</th><td>Automatic</td></tr>
+          <tr><th>Fuel</th><td>Petrol</td></tr>
+          <tr><th>Price</th><td>JOD </td></tr>
+          <tr><th>Location</th><td>Amman</td></tr>
+        </table>
+      </div>
+      <div class="mock">
+        <h4>Public Ad Page Includes</h4>
+        <ul style="margin:0 0 8px 18px">
+          <li>Photo gallery with pinch-to-zoom</li>
+          <li>Spec sheet & owner highlights</li>
+          <li>Contact actions (call, message)</li>
+          <li>QR attribution (scan source)</li>
+          <li>Mobile-first performance</li>
+        </ul>
+        <div style="margin-top:12px; padding:12px; border:1px dashed #cbd5e1; border-radius:8px; background:#f8fafc">
+          Tip: Print your QR at A6 size and place it on the rear side window.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section id="pricing" class="section" style="padding-top:32px">
+  <div class="container">
+    <div class="head">
+      <h2>Simple, transparent pricing</h2>
+      <p style="color:#475569">Choose a plan that fits your selling style.</p>
+    </div>
+    <div class="pricing">
+      <div class="plan">
+        <h3>Starter</h3>
+        <div class="price">Free</div>
+        <ul class="ul">
+          <li>1 active listing</li>
+          <li>Basic QR link</li>
+          <li>Essential analytics</li>
+        </ul>
+        <a class="btn" href="#download">Start now</a>
+      </div>
+      <div class="plan featured">
+        <h3>Pro Seller</h3>
+        <div class="price">JOD <span style="font-size:16px;font-weight:600">/Qr</span></div>
+        <ul class="ul">
+          <li>Up to 5 active listings</li>
+          <li>Custom QR design</li>
+          <li>Advanced insights</li>
+          <li>Priority support</li>
+        </ul>
+        <a class="btn" href="#download">Go Pro</a>
+      </div>
+      <div class="plan">
+        <h3>Dealer</h3>
+        <div class="price">JOD !!<span style="font-size:16px;font-weight:600">/Qr</span></div>
+        <ul class="ul">
+          <li>Unlimited listings</li>
+          <li>Team access</li>
+          <li>Export & lead tracking</li>
+          <li>API access</li>
+        </ul>
+        <a class="btn" href="#download">Contact sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section class="section" style="padding-top:32px">
+  <div class="container">
+    <div class="head">
+      <h2>Loved by sellers</h2>
+      <p style="color:#475569">Real results from everyday owners and small dealers.</p>
+    </div>
+    <div class="quotes">
+      <div class="quote">
+        “I sold my car in four days. People scanned the QR at a gas station and messaged me right away.”
+        <div style="margin-top:8px;color:#9aa4af">— Samer, Amman</div>
+      </div>
+      <div class="quote">
+        “The public page looked professional on mobile. The built-in stats helped me price correctly.”
+        <div style="margin-top:8px;color:#9aa4af">— Lina, Irbid</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="section" style="padding-top:32px">
+  <div class="container">
+    <div class="head">
+      <h2>Frequently asked questions</h2>
+      <p style="color:#475569">Everything about listings, QR, and buyers.</p>
+    </div>
+    <div class="faq">
+      <div class="q">
+        <strong>Do buyers need the app to view my ad?</strong>
+        <p>No. Your QR opens a public web page with your ad that works on any phone.</p>
+      </div>
+      <div class="q">
+        <strong>Can I edit my listing after publishing?</strong>
+        <p>Yes, you can update price, photos, and details at any time.</p>
+      </div>
+      <div class="q">
+        <strong>Is my phone number exposed?</strong>
+        <p>You decide whether to show a call button, message form, or both.</p>
+      </div>
+      <div class="q">
+        <strong>Do you take a commission on sales?</strong>
+        <p>No commission. Plans are flat monthly fees where applicable.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="download" class="cta">
+  <div class="container">
+    <h2 style="margin:0 0 8px">Ready to sell your car faster?</h2>
+    <p style="margin:0 0 18px; color:#475569">Create your first listing in minutes and share a smart QR anywhere.</p>
+    <div class="cta-row" style="justify-content:center">
+      <a class="btn" href="#">Download for iOS</a>
+      <a class="btn outline" href="#">Download for Android</a>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="container">
+    © 2025 motoria • <a href="#features">Features</a> • <a href="#pricing">Pricing</a> • <a href="#">Privacy & Terms</a>
+  </div>
+</footer>
+
+<script>
+  // Smooth scroll for in-page links (no external libs)
+  document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    a.addEventListener('click', e=>{
+      const id = a.getAttribute('href');
+      if (id.length>1 && document.querySelector(id)){
+        e.preventDefault();
+        document.querySelector(id).scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    });
+  });
+</script>
+</body>
+</html>

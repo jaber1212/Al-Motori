@@ -2,6 +2,7 @@
 from django.urls import path
 from mainapp.views.authViews import *
 from mainapp.views.coreViews import *  # 👈 avoid wildcard imports
+from mainapp.views.webViews import *  # 👈 avoid wildcard imports
 
 app_name = "mainapp"
 
@@ -43,4 +44,9 @@ urlpatterns = [
     path("api/qr/claim",       ClaimQRView.as_view(),    name="qr-claim"),
     path("api/qr/activate",    ActivateQRView.as_view(), name="qr-activate"),
     path("qr/<slug:code>/",    qr_landing,               name="qr-landing"),
+
+    path('terms/', terms_view, name='terms'),
+    path('', home_landing, name='terms'),
+
+    path('privacy/', privacy_view, name='privacy'),
 ]
