@@ -45,8 +45,8 @@ urlpatterns = [
     path("api/qr/activate",    ActivateQRView.as_view(), name="qr-activate"),
     path("qr/<slug:code>/",    qr_landing,               name="qr-landing"),
 
-    path('terms/', terms_view, name='terms'),
+    path('api/terms/', terms_view, name='terms'),
     path('', home_landing, name='terms'),
 
-    path('privacy/', privacy_view, name='privacy'),
+    path('api/privacy/', privacy_view, name='privacy'),
 ]
