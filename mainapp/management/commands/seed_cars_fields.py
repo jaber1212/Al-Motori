@@ -1,10 +1,10 @@
-# mainapp/management/commands/seed_cars_fields.py
+from typing import Optional, List, Dict, Any
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from mainapp.models import AdCategory, FieldType, FieldDefinition
 
 class Command(BaseCommand):
-    help = "Seed 'cars' category and common field definitions with choices"
+    help = "Seed 'cars' category and common field definitions with choices (idempotent updater)"
 
     def handle(self, *args, **kwargs):
         # ---- Category --------------------------------------------------------
@@ -20,19 +20,20 @@ class Command(BaseCommand):
         if missing:
             raise SystemExit(
                 f"Missing FieldType(s): {', '.join(sorted(missing))}. "
-                "Run your FieldType seeder first."
+                "Run: python manage.py seed_field_types"
             )
 
         # ---- Choice helpers ---------------------------------------------------
         current_year = timezone.now().year
         start_year = 1970
 
-        def year_choices_desc():
-            # ["2025","2024",...,"1970"] as label/value pairs
-            return [{"value": str(y), "label_en": str(y), "label_ar": str(y)}
-                    for y in range(current_year, start_year - 1, -1)]
+        def year_choices_desc() -> List[Dict[str, Any]]:
+            return [
+                {"value": str(y), "label_en": str(y), "label_ar": str(y)}
+                for y in range(current_year, start_year - 1, -1)
+            ]
 
-        def year_bucket_choices():
+        def year_bucket_choices() -> List[Dict[str, Any]]:
             buckets = [
                 ("2020-2025", "2020 - 2025"),
                 ("2015-2019", "2015 - 2019"),
@@ -45,7 +46,7 @@ class Command(BaseCommand):
             ]
             return [{"value": v, "label_en": lbl, "label_ar": lbl} for v, lbl in buckets]
 
-        def mileage_bucket_choices():
+        def mileage_bucket_choices() -> List[Dict[str, Any]]:
             labels = [
                 ("0-5000", "0 - 5,000 km"),
                 ("5000-10000", "5,000 - 10,000 km"),
@@ -56,7 +57,6 @@ class Command(BaseCommand):
                 ("150000-200000", "150,000 - 200,000 km"),
                 ("200000+", "200,000+ km"),
             ]
-            # Arabic labels mirror English numerals for clarity in classifieds
             return [{"value": v, "label_en": lbl, "label_ar": lbl} for v, lbl in labels]
 
         GEARBOX_CHOICES = [
@@ -74,18 +74,18 @@ class Command(BaseCommand):
         ]
 
         COLOR_CHOICES = [
-            {"value": "white",     "label_en": "White",     "label_ar": "أبيض"},
-            {"value": "black",     "label_en": "Black",     "label_ar": "أسود"},
-            {"value": "silver",    "label_en": "Silver",    "label_ar": "فضي"},
-            {"value": "gray",      "label_en": "Gray",      "label_ar": "رمادي"},
-            {"value": "blue",      "label_en": "Blue",      "label_ar": "أزرق"},
-            {"value": "red",       "label_en": "Red",       "label_ar": "أحمر"},
-            {"value": "green",     "label_en": "Green",     "label_ar": "أخضر"},
-            {"value": "beige",     "label_en": "Beige",     "label_ar": "بيج"},
-            {"value": "brown",     "label_en": "Brown",     "label_ar": "بني"},
-            {"value": "gold",      "label_en": "Gold",      "label_ar": "ذهبي"},
-            {"value": "orange",    "label_en": "Orange",    "label_ar": "برتقالي"},
-            {"value": "yellow",    "label_en": "Yellow",    "label_ar": "أصفر"},
+            {"value": "white",  "label_en": "White",  "label_ar": "أبيض"},
+            {"value": "black",  "label_en": "Black",  "label_ar": "أسود"},
+            {"value": "silver", "label_en": "Silver", "label_ar": "فضي"},
+            {"value": "gray",   "label_en": "Gray",   "label_ar": "رمادي"},
+            {"value": "blue",   "label_en": "Blue",   "label_ar": "أزرق"},
+            {"value": "red",    "label_en": "Red",    "label_ar": "أحمر"},
+            {"value": "green",  "label_en": "Green",  "label_ar": "أخضر"},
+            {"value": "beige",  "label_en": "Beige",  "label_ar": "بيج"},
+            {"value": "brown",  "label_en": "Brown",  "label_ar": "بني"},
+            {"value": "gold",   "label_en": "Gold",   "label_ar": "ذهبي"},
+            {"value": "orange", "label_en": "Orange", "label_ar": "برتقالي"},
+            {"value": "yellow", "label_en": "Yellow", "label_ar": "أصفر"},
         ]
 
         # ---- Upsert helper ----------------------------------------------------
@@ -97,10 +97,10 @@ class Command(BaseCommand):
             required: bool,
             order_index: int,
             visible_public: bool = True,
-            validation: dict | None = None,
-            choices: list | None = None,
-            placeholder_en: str | None = None,
-            placeholder_ar: str | None = None,
+            validation: Optional[Dict[str, Any]] = None,
+            choices: Optional[List[Dict[str, Any]]] = None,
+            placeholder_en: Optional[str] = None,
+            placeholder_ar: Optional[str] = None,
         ):
             obj, created = FieldDefinition.objects.get_or_create(
                 category=cars, key=key,
@@ -117,8 +117,9 @@ class Command(BaseCommand):
                     placeholder_ar=placeholder_ar,
                 ),
             )
-            if not created:
-                # keep things fresh on repeated runs
+            if created:
+                self.stdout.write(f"+ created {key}")
+            else:
                 obj.type = FT[tkey]
                 obj.label_en = label_en
                 obj.label_ar = label_ar
@@ -130,77 +131,48 @@ class Command(BaseCommand):
                 obj.placeholder_en = placeholder_en
                 obj.placeholder_ar = placeholder_ar
                 obj.save()
+                self.stdout.write(f"~ updated {key}")
 
         # ---- Core fields ------------------------------------------------------
-        upsert_field(
-            key="make", tkey="text",
-            label_en="Make", label_ar="الماركة",
-            required=True, order_index=10,
-            placeholder_en="BMW", placeholder_ar="بي إم دبليو",
-        )
-        upsert_field(
-            key="model", tkey="text",
-            label_en="Model", label_ar="الموديل",
-            required=True, order_index=20,
-            placeholder_en="320i", placeholder_ar="320i",
-        )
-        # Year as number with validation (1970..current year)
+        upsert_field("make",  "text",     "Make",  "الماركة", True,  10, placeholder_en="BMW",  placeholder_ar="بي إم دبليو")
+        upsert_field("model", "text",     "Model", "الموديل", True,  20, placeholder_en="320i", placeholder_ar="320i")
 
-        # Year as SELECT (1970..current), no validation
+        # Year as SELECT (1970..current)
         upsert_field(
             key="year", tkey="select",
             label_en="Year", label_ar="السنة",
             required=True, order_index=30,
-            choices=year_choices_desc(),  # ← 1970..current
-            validation={"minimum": start_year, "maximum": current_year},
+            choices=year_choices_desc(), validation=None,
         )
 
-
-
-
-        # Optional: year_range select for filtering UIs
+        # Optional: Year range buckets (for filters)
         upsert_field(
             key="year_range", tkey="select",
             label_en="Year (Range)", label_ar="السنة (نطاق)",
             required=False, order_index=35,
             choices=year_bucket_choices(),
         )
-        # Mileage number + range
-        # Mileage as SELECT (buckets), no validation
+
+        # Mileage as SELECT (bucketed)
         upsert_field(
             key="mileage_km", tkey="select",
             label_en="Mileage (km)", label_ar="المسافة المقطوعة (كم)",
             required=False, order_index=40,
-            choices=mileage_bucket_choices(),
-            validation={"minimum": 0},
+            choices=mileage_bucket_choices(), validation=None,
         )
+
+        # (Optional) mileage range separate field
         upsert_field(
             key="mileage_range", tkey="select",
             label_en="Mileage (Range)", label_ar="المسافة (نطاق)",
             required=False, order_index=45,
             choices=mileage_bucket_choices(),
         )
-        # Gearbox / Fuel
-        upsert_field(
-            key="gearbox", tkey="select",
-            label_en="Gearbox", label_ar="ناقل الحركة",
-            required=False, order_index=50,
-            choices=GEARBOX_CHOICES,
-        )
-        upsert_field(
-            key="fuel", tkey="select",
-            label_en="Fuel Type", label_ar="نوع الوقود",
-            required=False, order_index=60,
-            choices=FUEL_CHOICES,
-        )
-        # Color (select of common values)
-        upsert_field(
-            key="color", tkey="select",
-            label_en="Color", label_ar="اللون",
-            required=False, order_index=70,
-            choices=COLOR_CHOICES,
-        )
-        # Free text description
+
+        upsert_field("gearbox", "select", "Gearbox",    "ناقل الحركة",       False, 50, choices=GEARBOX_CHOICES)
+        upsert_field("fuel",    "select", "Fuel Type",  "نوع الوقود",        False, 60, choices=FUEL_CHOICES)
+        upsert_field("color",   "select", "Color",      "اللون",              False, 70, choices=COLOR_CHOICES)
+
         upsert_field(
             key="description", tkey="textarea",
             label_en="Description", label_ar="الوصف",
@@ -209,14 +181,4 @@ class Command(BaseCommand):
             placeholder_ar="الحالة، المواصفات، سجل الصيانة...",
         )
 
-        # Optionally: expose a flat list of year choices (descending)
-        # for apps that prefer a select instead of free number input
-        upsert_field(
-            key="year_select", tkey="select",
-            label_en="Year (Select)", label_ar="السنة (قائمة)",
-            required=False, order_index=31,
-            choices=year_choices_desc(),
-            visible_public=False,  # keep hidden in public UI if you only need it for filters
-        )
-
-        self.stdout.write(self.style.SUCCESS("Cars category & fields seeded (with choices)."))
+        self.stdout.write(self.style.SUCCESS("Cars category & fields seeded (updated)."))
