@@ -42,6 +42,7 @@ jobs:
             # Run Django migrations
             python manage.py makemigrations
             python manage.py migrate --noinput
+            python manage.py seed_field_types
 
             # Collect static files
             python manage.py collectstatic --noinput
