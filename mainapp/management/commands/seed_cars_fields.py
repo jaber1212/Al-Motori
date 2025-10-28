@@ -145,12 +145,19 @@ class Command(BaseCommand):
             placeholder_en="320i", placeholder_ar="320i",
         )
         # Year as number with validation (1970..current year)
+
+        # Year as SELECT (1970..current), no validation
         upsert_field(
-            key="year", tkey="number",
+            key="year", tkey="select",
             label_en="Year", label_ar="السنة",
             required=True, order_index=30,
+            choices=year_choices_desc(),  # ← 1970..current
             validation={"minimum": start_year, "maximum": current_year},
         )
+
+
+
+
         # Optional: year_range select for filtering UIs
         upsert_field(
             key="year_range", tkey="select",
@@ -159,10 +166,12 @@ class Command(BaseCommand):
             choices=year_bucket_choices(),
         )
         # Mileage number + range
+        # Mileage as SELECT (buckets), no validation
         upsert_field(
-            key="mileage_km", tkey="number",
+            key="mileage_km", tkey="select",
             label_en="Mileage (km)", label_ar="المسافة المقطوعة (كم)",
             required=False, order_index=40,
+            choices=mileage_bucket_choices(),
             validation={"minimum": 0},
         )
         upsert_field(

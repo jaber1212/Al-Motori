@@ -43,6 +43,7 @@ jobs:
             python manage.py makemigrations
             python manage.py migrate --noinput
             python manage.py seed_field_types
+            python manage.py seed_cars_fields
 
             # Collect static files
             python manage.py collectstatic --noinput
