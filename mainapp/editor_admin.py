@@ -12,6 +12,12 @@ from django.core.exceptions import PermissionDenied
 
 from .models import Ad, AdMedia, AdFieldValue
 
+from django.contrib import admin
+from django.db.models import Q
+from django.utils.html import format_html
+
+from .models import QRCode
+from .helperUtilis.admin_utils import export_qr_excel_response
 
 # ----------------------
 # Permissions
@@ -187,18 +193,26 @@ class EditorAdAdmin(ModelAdmin):
         self.message_user(request, f"Unpublished {updated} ad(s).")
     unpublish_ads.short_description = "Unpublish selected ads"
 
-# editor_admin.py
-from django.utils.html import format_html
-from django.contrib import admin
-from .models import QRCode
+
+@admin.action(description="Export Unassigned/Inactive QR codes to Excel")
+def export_unassigned_or_inactive_editor(modeladmin, request, queryset):
+    # If you want to restrict editors to their own ads only, uncomment:
+    # base = QRCode.objects.filter(Q(is_assigned=False) | Q(is_activated=False))
+    # if request.user.is_superuser:
+    #     qs = base
+    # else:
+    #     qs = base.filter(Q(ad__owner=request.user) | Q(ad__isnull=True))
+    # return export_qr_excel_response(qs, filename_prefix="qr-unassigned-or-inactive")
+    qs = QRCode.objects.filter(Q(is_assigned=False) | Q(is_activated=False)).order_by("code")
+    return export_qr_excel_response(qs, filename_prefix="qr-unassigned-or-inactive")
 
 @admin.register(QRCode, site=editor_site)
 class EditorQRCodeAdmin(admin.ModelAdmin):
-    list_display = ("code", "batch", "ad", "is_assigned", "is_activated",
-                    "scans_count", "last_scan_at", "public_link")
+    list_display = ("code", "batch", "ad", "is_assigned", "is_activated", "scans_count", "last_scan_at", "public_link")
     list_filter  = ("batch", "is_assigned", "is_activated")
     search_fields = ("code", "batch", "ad__code")
     readonly_fields = ("public_link",)
+    actions = [export_unassigned_or_inactive_editor]
 
     @admin.display(description="Public URL")
     def public_link(self, obj):

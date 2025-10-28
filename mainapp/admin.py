@@ -4,6 +4,13 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile,QRCode,QRScanLog
 from django.utils.html import format_html
+# admin.py
+from django.contrib import admin
+from django.db.models import Q
+from django.utils.html import format_html
+
+from .models import QRCode
+from .helperUtilis.admin_utils import export_qr_excel_response
 
 # --- Profile as its own model (sidebar) ---
 @admin.register(Profile)
@@ -85,17 +92,23 @@ class AdAdmin(admin.ModelAdmin):
         return format_html('<a href="{}" target="_blank">{}</a>', q.public_url, q.public_path)
 # admin.py
 
+
+@admin.action(description="Export Unassigned/Inactive QR codes to Excel")
+def export_unassigned_or_inactive(modeladmin, request, queryset):
+    # Export ALL that match (ignore selection) – easiest for users
+    qs = QRCode.objects.filter(Q(is_assigned=False) | Q(is_activated=False)).order_by("code")
+    return export_qr_excel_response(qs, filename_prefix="qr-unassigned-or-inactive")
+
 @admin.register(QRCode)
 class QRCodeAdmin(admin.ModelAdmin):
-    list_display = ("code", "batch", "ad", "is_assigned", "is_activated",
-                    "scans_count", "last_scan_at", "public_link")
+    list_display = ("code", "batch", "ad", "is_assigned", "is_activated", "scans_count", "last_scan_at", "public_link")
     list_filter  = ("batch", "is_assigned", "is_activated")
     search_fields = ("code", "batch", "ad__code")
     readonly_fields = ("public_link",)
+    actions = [export_unassigned_or_inactive]
 
     @admin.display(description="Public URL")
     def public_link(self, obj):
-        # Link text shows the path (/qr/{code}); href points to absolute or relative
         return format_html('<a href="{}" target="_blank">{}</a>', obj.public_url, obj.public_path)
 
 
