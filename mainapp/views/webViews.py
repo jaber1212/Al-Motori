@@ -8,3 +8,4 @@ def privacy_view(request):
 def home_landing(request):
     return render(request, 'landing.html')
 
+# mainapp/simple_exports.py
