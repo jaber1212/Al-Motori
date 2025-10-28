@@ -115,6 +115,10 @@ def export_not_activated(modeladmin, request, queryset):
     qs = QRCode.objects.filter(is_activated=False).order_by("code")
     return export_qr_excel_response(qs, filename_prefix="qr-not-activated")
 
+@admin.action(description="Export first 100 Unassigned QR codes to Excel")
+def export_first_100_unassigned(modeladmin, request, queryset):
+    qs = QRCode.objects.filter(is_assigned=False).order_by("code")[:100]
+    return export_qr_excel_response(qs, filename_prefix="qr-unassigned-top100")
 
 
 
@@ -125,7 +129,7 @@ class QRCodeAdmin(admin.ModelAdmin):
     search_fields = ("code", "batch", "ad__code")
     readonly_fields = ("public_link",)
 
-    actions = [export_unassigned,export_not_activated]  # 👈 add it here
+    actions = [export_unassigned,export_not_activated,export_first_100_unassigned]  # 👈 add it here
     actions_on_top = True          # nice UX
     actions_selection_counter = False
 
