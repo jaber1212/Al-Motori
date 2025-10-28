@@ -144,6 +144,13 @@ class QRCode(models.Model):
             models.Index(fields=["is_assigned", "is_activated"]),
         ]
 
+    @property
+    def public_path(self) -> str:
+        return build_qr_public_path(self.code)
+
+    @property
+    def public_url(self) -> str:
+        return build_qr_public_url(self.code)
     def __str__(self):
         return self.code
 
@@ -168,3 +175,29 @@ class QRScanLog(models.Model):
     def __str__(self):
         return f"{self.qr.code} @ {self.scanned_at}"
 
+# core/utils.py  (create this if you don’t have it)
+from django.conf import settings
+from django.urls import reverse, NoReverseMatch
+PUBLIC_BASE_URL = "https://motori.a.alce-qa.com"   # or "" for relative links
+QR_URL_NAME = "qr_landing"
+def build_qr_public_path(code: str) -> str:
+    """
+    Returns the path like '/qr/ABC123' or the reversed named route if available.
+    """
+    url_name = QR_URL_NAME
+    if url_name:
+        try:
+            return reverse(url_name, args=[code])
+        except NoReverseMatch:
+            pass
+    return f"/qr/{code}"
+
+def build_qr_public_url(code: str) -> str:
+    """
+    Returns absolute URL if PUBLIC_BASE_URL is set, else just the path.
+    """
+    path = build_qr_public_path(code)
+    base = PUBLIC_BASE_URL
+    if base.endswith("/"):
+        base = base[:-1]
+    return f"{base}{path}"

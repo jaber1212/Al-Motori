@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile,QRCode,QRScanLog
+from django.utils.html import format_html
 
 # --- Profile as its own model (sidebar) ---
 @admin.register(Profile)
@@ -76,12 +77,27 @@ class AdAdmin(admin.ModelAdmin):
     list_filter  = ("status","category","city")
     search_fields= ("code","title","owner__username")
     inlines = [AdMediaInline, AdFieldValueInline]
+    @admin.display(description="QR Link")
+    def qr_public_link(self, obj):
+        q = getattr(obj, "qr_code", None)
+        if not q:
+            return "-"
+        return format_html('<a href="{}" target="_blank">{}</a>', q.public_url, q.public_path)
+# admin.py
 
 @admin.register(QRCode)
 class QRCodeAdmin(admin.ModelAdmin):
-    list_display = ("code", "batch", "ad", "is_assigned", "is_activated", "scans_count", "last_scan_at")
+    list_display = ("code", "batch", "ad", "is_assigned", "is_activated",
+                    "scans_count", "last_scan_at", "public_link")
     list_filter  = ("batch", "is_assigned", "is_activated")
     search_fields = ("code", "batch", "ad__code")
+    readonly_fields = ("public_link",)
+
+    @admin.display(description="Public URL")
+    def public_link(self, obj):
+        # Link text shows the path (/qr/{code}); href points to absolute or relative
+        return format_html('<a href="{}" target="_blank">{}</a>', obj.public_url, obj.public_path)
+
 
 @admin.register(QRScanLog)
 class QRScanLogAdmin(admin.ModelAdmin):

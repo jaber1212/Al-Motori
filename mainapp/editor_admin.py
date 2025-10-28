@@ -120,6 +120,13 @@ class EditorAdAdmin(ModelAdmin):
             return False
         return super().has_delete_permission(request, obj)
 
+    @admin.display(description="QR Link")
+    def qr_public_link(self, obj):
+        q = getattr(obj, "qr_code", None)
+        if not q:
+            return "-"
+        return format_html('<a href="{}" target="_blank">{}</a>', q.public_url, q.public_path)
+
     def get_readonly_fields(self, request, obj=None):
         ro = list(super().get_readonly_fields(request, obj))
         if request.user.groups.filter(name="Editor").exists() and not request.user.is_superuser:
@@ -179,3 +186,20 @@ class EditorAdAdmin(ModelAdmin):
             updated += 1
         self.message_user(request, f"Unpublished {updated} ad(s).")
     unpublish_ads.short_description = "Unpublish selected ads"
+
+# editor_admin.py
+from django.utils.html import format_html
+from django.contrib import admin
+from .models import QRCode
+
+@admin.register(QRCode, site=editor_site)
+class EditorQRCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "batch", "ad", "is_assigned", "is_activated",
+                    "scans_count", "last_scan_at", "public_link")
+    list_filter  = ("batch", "is_assigned", "is_activated")
+    search_fields = ("code", "batch", "ad__code")
+    readonly_fields = ("public_link",)
+
+    @admin.display(description="Public URL")
+    def public_link(self, obj):
+        return format_html('<a href="{}" target="_blank">{}</a>', obj.public_url, obj.public_path)
