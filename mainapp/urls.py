@@ -3,7 +3,7 @@ from django.urls import path
 from mainapp.views.authViews import *
 from mainapp.views.coreViews import *  # 👈 avoid wildcard imports
 from mainapp.views.webViews import *  # 👈 avoid wildcard imports
-from  mainapp.admin import *
+
 app_name = "mainapp"
 
 urlpatterns = [
@@ -49,6 +49,4 @@ urlpatterns = [
     path('', home_landing, name='terms'),
 
     path('api/privacy/', privacy_view, name='privacy'),
-    path("admin/exports/qr-unassigned-or-inactive/", export_qr_unassigned_or_inactive, name="qr_export_unassigned"),
-
 ]

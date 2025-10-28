@@ -4,13 +4,6 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile,QRCode,QRScanLog
 from django.utils.html import format_html
-# admin.py
-from django.contrib import admin
-from django.db.models import Q
-from django.utils.html import format_html
-
-from .models import QRCode
-from .helperUtilis.admin_utils import export_qr_excel_response
 
 # --- Profile as its own model (sidebar) ---
 @admin.register(Profile)
@@ -92,51 +85,54 @@ class AdAdmin(admin.ModelAdmin):
         return format_html('<a href="{}" target="_blank">{}</a>', q.public_url, q.public_path)
 # admin.py
 
+# admin.py
+from django.contrib import admin
+from django.db.models import Q
+from django.utils.html import format_html
+
+from .models import QRCode
+from .helperUtilis.admin_utils import export_qr_excel_response
 
 @admin.action(description="Export Unassigned/Inactive QR codes to Excel")
 def export_unassigned_or_inactive(modeladmin, request, queryset):
     # Export ALL that match (ignore selection) – easiest for users
     qs = QRCode.objects.filter(Q(is_assigned=False) | Q(is_activated=False)).order_by("code")
     return export_qr_excel_response(qs, filename_prefix="qr-unassigned-or-inactive")
+@admin.action(description="Export Unassigned QR codes to Excel")
+def export_unassigned(modeladmin, request, queryset):
+    # Strict version (no ad linked at all):
+    # qs = QRCode.objects.filter(ad__isnull=True).order_by("code")
 
-# admin.py
-from django.urls import path
-from django.utils.html import format_html
-from django.contrib import admin
-from django.db.models import Q
-from django.shortcuts import redirect
-from .models import QRCode
-from .helperUtilis.admin_utils import export_qr_excel_response
+    # Or use your flag:
+    qs = QRCode.objects.filter(is_assigned=False).order_by("code")
+
+    return export_qr_excel_response(qs, filename_prefix="qr-unassigned")
+
+
+
+@admin.action(description="Export Not Activated QR codes to Excel")
+def export_not_activated(modeladmin, request, queryset):
+    qs = QRCode.objects.filter(is_activated=False).order_by("code")
+    return export_qr_excel_response(qs, filename_prefix="qr-not-activated")
+
+
+
 
 @admin.register(QRCode)
 class QRCodeAdmin(admin.ModelAdmin):
-    list_display = ("code", "batch", "ad", "is_assigned", "is_activated",
-                    "scans_count", "last_scan_at", "public_link")
-    actions = [export_unassigned_or_inactive]
-    change_list_template = "admin/mainapp/qrcode_change_list.html"  # create template
+    list_display = ("code", "batch", "ad", "is_assigned", "is_activated", "scans_count", "last_scan_at", "public_link")
+    list_filter  = ("batch", "is_assigned", "is_activated")
+    search_fields = ("code", "batch", "ad__code")
+    readonly_fields = ("public_link",)
 
-    def get_urls(self):
-        urls = super().get_urls()
-        custom = [
-            path("export-unassigned-or-inactive/",
-                 self.admin_site.admin_view(self.export_view),
-                 name="mainapp_qrcode_export"),
-        ]
-        return custom + urls
+    actions = [export_unassigned,export_not_activated]  # 👈 add it here
+    actions_on_top = True          # nice UX
+    actions_selection_counter = False
 
-    def export_view(self, request):
-        qs = QRCode.objects.filter(Q(is_assigned=False) | Q(is_activated=False)).order_by("code")
-        return export_qr_excel_response(qs, filename_prefix="qr-unassigned-or-inactive")
+    @admin.display(description="Public URL")
+    def public_link(self, obj):
+        return format_html('<a href="{}" target="_blank">{}</a>', obj.public_url, obj.public_path)
 
-from django.contrib.admin.views.decorators import staff_member_required
-from django.db.models import Q
-from .models import QRCode
-from .helperUtilis.admin_utils import export_qr_excel_response
-
-@staff_member_required
-def export_qr_unassigned_or_inactive(request):
-    qs = QRCode.objects.filter(Q(is_assigned=False) | Q(is_activated=False)).order_by("code")
-    return export_qr_excel_response(qs, filename_prefix="qr-unassigned-or-inactive")
 
 @admin.register(QRScanLog)
 class QRScanLogAdmin(admin.ModelAdmin):
