@@ -463,7 +463,6 @@ class AdFormView(APIView):
     permission_classes = [permissions.AllowAny]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-    # ---------- GET: schema (with optional prefill) ----------
     def get(self, request):
         category_key = request.query_params.get("category")
         if not category_key:
@@ -488,7 +487,7 @@ class AdFormView(APIView):
             item["label"] = _localize(item, locale, "label_en", "label_ar")
             item["placeholder"] = _localize(item, locale, "placeholder_en", "placeholder_ar")
 
-        # Core fields definition
+        # Base core fields (no isPublick here)
         core_fields = [
             {
                 "key": "title",
@@ -512,20 +511,13 @@ class AdFormView(APIView):
                 "required": False,
                 "placeholder": "عمّان" if locale == "ar" else "Amman",
             },
-               {
-        "key": "isPublick",
-        "type": "boolean",  # client can render a switch
-        "label": "عرض الإعلان للعامة" if locale == "ar" else "Public (publish)",
-        "required": False,
-        "placeholder": "",
-    }
         ]
 
         mode = "create"
         ad_hint = {}
         submit = {"method": "POST", "url": "/api/ads/form"}
 
-        # If edit requested
+        # --- Edit mode only if ad_id present and owned by user ---
         if ad_id:
             if not user:
                 return Response({"status": False, "message": "Authentication required for edit"}, status=401)
@@ -537,12 +529,26 @@ class AdFormView(APIView):
                 id=ad_id, owner=user, category=cat
             )
 
-            # Prefill core
-            core_map = {"title": ad.title, "price": ad.price, "city": ad.city, "isPublick": (ad.status == "published")}
+            # Append isPublick ONLY in edit mode
+            core_fields.append({
+                "key": "isPublick",
+                "type": "boolean",
+                "label": "عرض الإعلان للعامة" if locale == "ar" else "Public (publish)",
+                "required": False,
+                "placeholder": "",
+            })
+
+            # Prefill core values
+            core_map = {
+                "title": ad.title,
+                "price": ad.price,
+                "city": ad.city,
+                "isPublick": (ad.status == "published"),
+            }
             for cf in core_fields:
                 cf["value"] = core_map.get(cf["key"])
 
-            # Prefill dynamic (prefer matching locale if provided in AdFieldValue.locale, else any)
+            # Prefill dynamic values
             best = {}
             for v in ad.values.all():
                 k = v.field.key
