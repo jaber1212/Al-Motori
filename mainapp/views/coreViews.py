@@ -1190,3 +1190,54 @@ def qr_landing(request, code):
 
     # activated → redirect to the public ad page
     return HttpResponseRedirect(f"/ads/{qr.ad.code}")
+# views/ads_delete.py (or inside your existing views file)
+
+from django.db import transaction
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status as http
+
+from mainapp.models import Ad, AdMedia, AdFieldValue
+
+# Reuse your existing helper that reads token from:
+# - Authorization: Token <token>
+# - or ?token= / body token
+# and returns a User or None
+# def _auth_user_from_request(request): ...
+
+@api_view(["POST"])
+@authentication_classes([])          # we authenticate manually via _auth_user_from_request
+@permission_classes([AllowAny])      # token is required, but DRF permission can stay open
+def delete_ad(request):
+    """
+    POST /api/ads/delete
+    Body/Headers:
+      - token: (header Authorization: Token <key> OR body/query param)
+      - ad_id: required (int)
+    """
+    user = _auth_user_from_request(request)
+    if not user:
+        return Response({"status": False, "message": "Authentication required"}, status=http.HTTP_401_UNAUTHORIZED)
+
+    ad_id = request.data.get("ad_id") or request.query_params.get("ad_id")
+    if not ad_id:
+        return Response({"status": False, "message": "ad_id is required"}, status=http.HTTP_400_BAD_REQUEST)
+
+    try:
+        ad_id = int(ad_id)
+    except (TypeError, ValueError):
+        return Response({"status": False, "message": "ad_id must be an integer"}, status=http.HTTP_400_BAD_REQUEST)
+
+    # Only delete if the ad exists and belongs to this user; otherwise 404 to avoid ID enumeration
+    ad = Ad.objects.filter(id=ad_id, owner=user).first()
+    if not ad:
+        return Response({"status": False, "message": "Ad not found"}, status=http.HTTP_404_NOT_FOUND)
+
+    # If your FK relations are CASCADE, the next two lines are optional; they make the intent explicit.
+    with transaction.atomic():
+        AdMedia.objects.filter(ad=ad).delete()
+        AdFieldValue.objects.filter(ad=ad).delete()
+        ad.delete()
+
+    return Response({"status": True, "message": "Deleted"}, status=http.HTTP_200_OK)
