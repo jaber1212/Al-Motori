@@ -8,7 +8,7 @@ def send_push_notification(player_ids, title, message):
 
     url = "https://onesignal.com/api/v1/notifications"
     headers = {
-        "Authorization": f"Basic os_v2_app_roz2vmwof5esplt5qrbw5cno7pasxxth3rmuqvekkzx4bwlgpxnmpduyibkhmt5o3l6pbukiilw67452whcj7hipzupczcm7f25uitq",
+        "Authorization": f"Basic os_v2_app_roz2vmwof5esplt5qrbw5cno7nglookiewqeu7eaje4lz62prrv7yojfu2h565iqwlexeosfnfiaexvn2fsxffclbzgofcnebovoh5y",
         "Content-Type": "application/json; charset=utf-8",
     }
     payload = {
