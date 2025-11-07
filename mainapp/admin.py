@@ -148,14 +148,16 @@ class QRScanLogAdmin(admin.ModelAdmin):
 # notifications/admin.py
 from django.contrib import admin
 from .models import Notification
-from .models import Profile  # ✅ adjust the import path to where your Profile is
+from .models import Profile  # ✅ adjust if your Profile is in another app
 from .helperUtilis.onesignal_client import send_push_notification
+
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ("title", "user", "sent", "created_at")
     actions = ["send_selected_notifications"]
 
+    # ✅ 1. Manual bulk send action (kept)
     def send_selected_notifications(self, request, queryset):
         for notification in queryset.filter(sent=False):
             try:
@@ -163,11 +165,30 @@ class NotificationAdmin(admin.ModelAdmin):
                 if profile.player_id:
                     send_push_notification([profile.player_id], notification.title, notification.message)
                     notification.sent = True
-                    notification.save()
+                    notification.save(update_fields=["sent"])
                 else:
                     self.message_user(request, f"⚠️ No player_id for {notification.user.username}", level="warning")
             except Profile.DoesNotExist:
                 self.message_user(request, f"❌ No profile found for {notification.user.username}", level="error")
 
         self.message_user(request, "✅ Notifications sent successfully!")
+
     send_selected_notifications.short_description = "Send selected notifications"
+
+    # ✅ 2. Automatic send when a single notification is saved in admin form
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        # Only send if not already sent
+        if not obj.sent:
+            try:
+                profile = Profile.objects.get(user=obj.user)
+                if profile.player_id:
+                    send_push_notification([profile.player_id], obj.title, obj.message)
+                    obj.sent = True
+                    obj.save(update_fields=["sent"])
+                    self.message_user(request, f"✅ Notification sent to {obj.user.username}")
+                else:
+                    self.message_user(request, f"⚠️ No player_id for {obj.user.username}", level="warning")
+            except Profile.DoesNotExist:
+                self.message_user(request, f"❌ No profile found for {obj.user.username}", level="error")
