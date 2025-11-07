@@ -200,7 +200,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 ONESIGNAL_APP_ID="8bb3aab2-ce2f-4927-ae7d-84436e89aefb"
-ONESIGNAL_API_KEY="os_v2_app_roz2vmwof5esplt5qrbw5cno7nglookiewqeu7eaje4lz62prrv7yojfu2h565iqwlexeosfnfiaexvn2fsxffclbzgofcnebovoh5y"
+ONESIGNAL_API_KEY="os_v2_app_roz2vmwof5esplt5qrbw5cno7mb25f5ck24ug55gc532s4adoevs3stcb4br5jeuaj6xrzq6gjrhiwcefiifynfyf7rhdzjakbnfjrq"
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'
