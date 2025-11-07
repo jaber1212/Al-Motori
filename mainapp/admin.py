@@ -143,3 +143,31 @@ class QRScanLogAdmin(admin.ModelAdmin):
     list_display = ("qr", "ad", "scanned_at", "ip")
     list_filter  = ("scanned_at",)
     search_fields = ("qr__code", "ad__code", "ip", "user_agent")
+
+
+# notifications/admin.py
+from django.contrib import admin
+from .models import Notification
+from .models import Profile  # ✅ adjust the import path to where your Profile is
+from .helperUtilis.onesignal_client import send_push_notification
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("title", "user", "sent", "created_at")
+    actions = ["send_selected_notifications"]
+
+    def send_selected_notifications(self, request, queryset):
+        for notification in queryset.filter(sent=False):
+            try:
+                profile = Profile.objects.get(user=notification.user)
+                if profile.player_id:
+                    send_push_notification([profile.player_id], notification.title, notification.message)
+                    notification.sent = True
+                    notification.save()
+                else:
+                    self.message_user(request, f"⚠️ No player_id for {notification.user.username}", level="warning")
+            except Profile.DoesNotExist:
+                self.message_user(request, f"❌ No profile found for {notification.user.username}", level="error")
+
+        self.message_user(request, "✅ Notifications sent successfully!")
+    send_selected_notifications.short_description = "Send selected notifications"

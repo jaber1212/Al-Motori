@@ -1,0 +1,22 @@
+# notifications/utils/onesignal_client.py
+import requests
+from django.conf import settings
+
+def send_push_notification(player_ids, title, message):
+    if not player_ids:
+        return {"error": "No player IDs provided"}
+
+    url = "https://onesignal.com/api/v1/notifications"
+    headers = {
+        "Authorization": f"Basic os_v2_app_roz2vmwof5esplt5qrbw5cno7pasxxth3rmuqvekkzx4bwlgpxnmpduyibkhmt5o3l6pbukiilw67452whcj7hipzupczcm7f25uitq",
+        "Content-Type": "application/json; charset=utf-8",
+    }
+    payload = {
+        "app_id": "8bb3aab2-ce2f-4927-ae7d-84436e89aefb",
+        "include_player_ids": player_ids,
+        "headings": {"en": title},
+        "contents": {"en": message},
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()
