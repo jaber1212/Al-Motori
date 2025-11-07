@@ -199,6 +199,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+ONESIGNAL_APP_ID="8bb3aab2-ce2f-4927-ae7d-84436e89aefb"
+ONESIGNAL_API_KEY="os_v2_app_roz2vmwof5esplt5qrbw5cno7nglookiewqeu7eaje4lz62prrv7yojfu2h565iqwlexeosfnfiaexvn2fsxffclbzgofcnebovoh5y"
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'

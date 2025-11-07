@@ -1,6 +1,7 @@
 # notifications/utils/onesignal_client.py
 import requests
 from django.conf import settings
+from django.conf import settings
 
 def send_push_notification(player_ids, title, message):
     if not player_ids:
@@ -8,7 +9,7 @@ def send_push_notification(player_ids, title, message):
 
     url = "https://onesignal.com/api/v1/notifications"
     headers = {
-        "Authorization": f"Basic os_v2_app_roz2vmwof5esplt5qrbw5cno7nglookiewqeu7eaje4lz62prrv7yojfu2h565iqwlexeosfnfiaexvn2fsxffclbzgofcnebovoh5y",
+        "Authorization": f"Basic {settings.ONESIGNAL_API_KEY}",
         "Content-Type": "application/json; charset=utf-8",
     }
     payload = {
