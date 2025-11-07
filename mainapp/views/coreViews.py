@@ -961,10 +961,6 @@ def _format_value(fd: FieldDefinition, value):
 
 # coreViews.py
 def ad_public_page_by_code(request, code: str):
-    """
-    Public ad page by code (only 'published' ads are shown).
-    Template: templates/ads/ad_detail.html
-    """
     lang = _lang(request)
 
     ad = get_object_or_404(
@@ -978,24 +974,20 @@ def ad_public_page_by_code(request, code: str):
         code=code
     )
 
-    # Core fields (feel free to change labels)
     core = [
         {"key": "title", "label": "العنوان" if lang == "ar" else "Title", "value": ad.title or ""},
         {"key": "price", "label": "السعر" if lang == "ar" else "Price", "value": (f"{ad.price:.2f}" if ad.price is not None else "")},
         {"key": "city",  "label": "المدينة" if lang == "ar" else "City",  "value": ad.city or ""},
         {"key": "code",  "label": "رمز الإعلان" if lang == "ar" else "Ad Code", "value": ad.code},
-        {"key": "date",  "label": "تاريخ النشر" if lang == "ar" else "Published", "value": ad.published_at.strftime("%Y-%m-%d %H:%M") if ad.published_at else ""},
+        {"key": "date",  "label": "تاريخ النشر" if lang == "ar" else "Published",
+         "value": ad.published_at.strftime("%Y-%m-%d %H:%M") if ad.published_at else ""},
     ]
 
-    # Dynamic fields (only visible_public)
-    # Prefer same-locale AdFieldValue if you store 'locale'; else fallback to any
-    # Build best map per field key
     best_values = {}
     for v in ad.values.all():
-        k = v.field.key
         if v.field.visible_public is False:
             continue
-        # prefer same-locale, else keep first seen
+        k = v.field.key
         if v.locale == lang or k not in best_values:
             best_values[k] = (v.field, v.value)
 
@@ -1012,9 +1004,15 @@ def ad_public_page_by_code(request, code: str):
         })
     dynamic.sort(key=lambda x: (x["order_index"], x["key"]))
 
-    # Media
     images = [m.url for m in ad.media.all() if m.kind == AdMedia.IMAGE]
     video  = next((m.url for m in ad.media.all() if m.kind == AdMedia.VIDEO), None)
+
+    # ✅ Extract phone number from dynamic fields like 'cars.Phone' or similar
+    phone_number = None
+    for d in dynamic:
+        if "phone" in d["key"].lower():
+            phone_number = str(d["value_raw"]).strip().replace('"', '')
+            break
 
     context = {
         "lang": lang,
@@ -1027,13 +1025,14 @@ def ad_public_page_by_code(request, code: str):
         "dynamic": dynamic,
         "images": images,
         "video": video,
-        # Simple SEO/OpenGraph (tweak as you like)
         "meta": {
             "title": ad.title or (ad.category.name_ar if lang == "ar" else ad.category.name_en),
             "description": f"{ad.city or ''} • {ad.price or ''}",
             "image": images[0] if images else None,
             "url": request.build_absolute_uri(),
-        }
+        },
+        # ✅ Add phone into context (even if not in Ad model)
+        "phone": phone_number or getattr(ad, "phone", None),
     }
     return render(request, "ads/ad_detail.html", context)
 
