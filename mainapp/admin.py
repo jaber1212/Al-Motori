@@ -154,41 +154,59 @@ from .helperUtilis.onesignal_client import send_push_notification
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ("title", "user", "sent", "created_at")
+    list_display = ("title", "target", "user", "sent", "created_at")
     actions = ["send_selected_notifications"]
 
-    # ✅ 1. Manual bulk send action (kept)
     def send_selected_notifications(self, request, queryset):
         for notification in queryset.filter(sent=False):
-            try:
-                profile = Profile.objects.get(user=notification.user)
-                if profile.player_id:
-                    send_push_notification([profile.player_id], notification.title, notification.message)
+            if notification.target == "all":
+                profiles = Profile.objects.exclude(player_id__isnull=True).exclude(player_id="")
+                player_ids = [p.player_id for p in profiles]
+                if player_ids:
+                    send_push_notification(player_ids, notification.title, notification.message)
                     notification.sent = True
                     notification.save(update_fields=["sent"])
+                    self.message_user(request, f"✅ Sent to all users ({len(player_ids)})")
                 else:
-                    self.message_user(request, f"⚠️ No player_id for {notification.user.username}", level="warning")
-            except Profile.DoesNotExist:
-                self.message_user(request, f"❌ No profile found for {notification.user.username}", level="error")
-
-        self.message_user(request, "✅ Notifications sent successfully!")
+                    self.message_user(request, "⚠️ No users with player_id found", level="warning")
+            else:
+                try:
+                    profile = Profile.objects.get(user=notification.user)
+                    if profile.player_id:
+                        send_push_notification([profile.player_id], notification.title, notification.message)
+                        notification.sent = True
+                        notification.save(update_fields=["sent"])
+                        self.message_user(request, f"✅ Sent to {notification.user.username}")
+                    else:
+                        self.message_user(request, f"⚠️ No player_id for {notification.user.username}", level="warning")
+                except Profile.DoesNotExist:
+                    self.message_user(request, f"❌ No profile found for {notification.user.username}", level="error")
 
     send_selected_notifications.short_description = "Send selected notifications"
 
-    # ✅ 2. Automatic send when a single notification is saved in admin form
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-        # Only send if not already sent
         if not obj.sent:
-            try:
-                profile = Profile.objects.get(user=obj.user)
-                if profile.player_id:
-                    send_push_notification([profile.player_id], obj.title, obj.message)
+            if obj.target == "all":
+                profiles = Profile.objects.exclude(player_id__isnull=True).exclude(player_id="")
+                player_ids = [p.player_id for p in profiles]
+                if player_ids:
+                    send_push_notification(player_ids, obj.title, obj.message)
                     obj.sent = True
                     obj.save(update_fields=["sent"])
-                    self.message_user(request, f"✅ Notification sent to {obj.user.username}")
+                    self.message_user(request, f"✅ Notification sent to all users ({len(player_ids)})")
                 else:
-                    self.message_user(request, f"⚠️ No player_id for {obj.user.username}", level="warning")
-            except Profile.DoesNotExist:
-                self.message_user(request, f"❌ No profile found for {obj.user.username}", level="error")
+                    self.message_user(request, "⚠️ No users with player_id found", level="warning")
+            elif obj.user:
+                try:
+                    profile = Profile.objects.get(user=obj.user)
+                    if profile.player_id:
+                        send_push_notification([profile.player_id], obj.title, obj.message)
+                        obj.sent = True
+                        obj.save(update_fields=["sent"])
+                        self.message_user(request, f"✅ Notification sent to {obj.user.username}")
+                    else:
+                        self.message_user(request, f"⚠️ No player_id for {obj.user.username}", level="warning")
+                except Profile.DoesNotExist:
+                    self.message_user(request, f"❌ No profile found for {obj.user.username}", level="error")

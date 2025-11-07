@@ -12,6 +12,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework import status as http
+from rest_framework import views, permissions, status
+from django.db.models import Q   # ✅ add this lin
 
 from mainapp.models import Profile
 from mainapp.serializers.authSerializers import (
@@ -19,9 +21,11 @@ from mainapp.serializers.authSerializers import (
     ProfileUpdateSerializer, SendOTPSerializer, VerifyOTPSerializer
 )
 from mainapp.utils import api_ok, api_err
-
+from  mainapp.models import Notification
 # Your WhatsApp sender (already implemented by you)
 from mainapp.OTPSender.whatsappApi import send_whatsapp_template
+from  .coreViews import  _auth_user_from_request
+from mainapp.serializers.authSerializers import NotificationSerializer  # we’ll create this below
 
 # ---------------------------------
 # Helpers
@@ -258,3 +262,41 @@ class RegisterView(APIView):
             data={"token": token.key, "profile": profile_data},
             code="REGISTER_OK",
         )
+
+
+
+class MyNotificationsView(APIView):
+    """
+    POST /api/notifications/my
+    Body:
+      - token: required
+
+    Returns:
+      {
+        "status": true,
+        "message": "Notifications fetched",
+        "data": [
+            { "id": 1, "title": "New update", "message": "Check this out", "created_at": "...", "sent": true },
+            ...
+        ]
+      }
+    """
+    permission_classes = [permissions.AllowAny]  # manual token auth
+
+    def post(self, request):
+        # 1️⃣ Authenticate via token
+        user = _auth_user_from_request(request)
+        if not user:
+            return api_err("Authentication required")
+
+        # 2️⃣ Retrieve all notifications (personal + global)
+        qs = (
+            Notification.objects.filter(
+                models.Q(target="all") | models.Q(user=user)
+            )
+            .order_by("-created_at")
+        )
+
+        # 3️⃣ Serialize and return
+        data = NotificationSerializer(qs, many=True).data
+        return ok("Notifications fetched", data=data)

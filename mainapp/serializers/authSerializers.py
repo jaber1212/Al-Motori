@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from django.db import transaction, IntegrityError
 from rest_framework import serializers
-from mainapp.models import Profile
+from mainapp.models import Profile,Notification
 from mainapp.utils import api_err  # only for views; DO NOT use inside serializer
 
 def generate_otp():
@@ -123,3 +123,9 @@ class VerifyOTPSerializer(serializers.Serializer):
         self.profile.is_verified = True
         self.profile.save(update_fields=["is_verified"])
         return {"verified": True}
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ["id", "target", "title", "message", "sent", "created_at"]

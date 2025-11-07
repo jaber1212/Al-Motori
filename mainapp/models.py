@@ -207,13 +207,26 @@ def build_qr_public_url(code: str) -> str:
 # notifications/models.py
 from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
+from django.contrib.auth.models import User
+from django.contrib import admin
+from .helperUtilis.onesignal_client import send_push_notification
+from mainapp.models import Profile  # adjust import path as needed
 
 class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    TARGET_CHOICES = [
+        ("single", "Single User"),
+        ("all", "All Users"),
+    ]
+
+    target = models.CharField(max_length=10, choices=TARGET_CHOICES, default="single")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
     title = models.CharField(max_length=255)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     sent = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.title} → {self.user.username}"
+        if self.target == "all":
+            return f"{self.title} → All Users"
+        return f"{self.title} → {self.user.username if self.user else 'N/A'}"

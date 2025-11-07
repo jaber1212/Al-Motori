@@ -17,6 +17,7 @@ urlpatterns = [
 
     # Profile
     path("api/profile/me",     MeProfileView.as_view(), name="profile-me"),
+    path("api/notifications",     MyNotificationsView.as_view(), name="profile-me"),
     path("api/logout/",        logout,                  name="auth-logout"),
 
     # Ads (create/edit/publish)

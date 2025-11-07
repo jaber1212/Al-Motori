@@ -33,7 +33,6 @@ Thumbs.db
 *.bak
 *.tmp
 *.old
-
 # PyCharm project settings
 *.iml
 .vscode/
