@@ -154,10 +154,10 @@ class ForgetPasswordSendOTPSerializer(serializers.Serializer):
     def save(self):
         profile = self.validated_data["profile"]
         # Generate a new OTP
-        otp = random.randint(100000, 999999)
-        profile.op_code = str(otp)
+        otp = str(random.randint(100000, 999999))
+        profile.op_code = otp
         profile.save(update_fields=["op_code"])
-        return {"phone": profile.phone}
+        return {"phone": profile.phone, "op_code": otp}
 
 
 class ForgetPasswordVerifySerializer(serializers.Serializer):
@@ -189,7 +189,6 @@ class ForgetPasswordVerifySerializer(serializers.Serializer):
         user.save(update_fields=["password"])
 
         # Reset OTP and mark verified if needed
-        profile.op_code = None
         profile.is_verified = True
         profile.save(update_fields=["op_code", "is_verified"])
 
