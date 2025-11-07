@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+
+# Environment
+.env
+.venv/
+venv/
+ENV/
+env/
+*.env
+
+# Virtual environment IDE files
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Django / Local databases
+db.sqlite3
+media/
+staticfiles/
+*.log
+
+# System files
+Thumbs.db
+*.bak
+*.tmp
+*.old
+
+# PyCharm project settings
+*.iml
+.vscode/
+.idea/
+
+# Migrations cache (optional — keep if you want clean git history)
+**/migrations/__pycache__/
+**/migrations/*.pyc
