@@ -13,7 +13,7 @@ def send_push_notification(player_ids, title, message):
     }
     payload = {
         "app_id": "8bb3aab2-ce2f-4927-ae7d-84436e89aefb",
-        "include_player_ids": player_ids,
+        "include_player_ids": ["8a39faa1-1f00-4ab1-9cf6-6abc031cd65c"],
         "headings": {"en": title},
         "contents": {"en": message},
     }
