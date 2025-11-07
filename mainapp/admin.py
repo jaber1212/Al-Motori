@@ -69,7 +69,8 @@ class AdFieldValueInline(admin.TabularInline):
 class AdMediaInline(admin.TabularInline):
     model = AdMedia
     extra = 0
-    fields = ("kind","url","order_index")
+    fields = ("kind", "order_index")   # 👈 removed "url"
+    readonly_fields = ()               # optional — leave empty
 
 @admin.register(Ad)
 class AdAdmin(admin.ModelAdmin):
