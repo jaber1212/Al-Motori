@@ -265,6 +265,7 @@ class RegisterView(APIView):
 
 
 
+
 class MyNotificationsView(APIView):
     """
     POST /api/notifications/my
@@ -272,14 +273,7 @@ class MyNotificationsView(APIView):
       - token: required
 
     Returns:
-      {
-        "status": true,
-        "message": "Notifications fetched",
-        "data": [
-            { "id": 1, "title": "New update", "message": "Check this out", "created_at": "...", "sent": true },
-            ...
-        ]
-      }
+      { "status": true, "message": "Notifications fetched", "data": [...] }
     """
     permission_classes = [permissions.AllowAny]  # manual token auth
 
@@ -289,14 +283,13 @@ class MyNotificationsView(APIView):
         if not user:
             return api_err("Authentication required")
 
-        # 2️⃣ Retrieve all notifications (personal + global)
+        # 2️⃣ Fetch notifications (personal + global)
         qs = (
-            Notification.objects.filter(
-                models.Q(target="all") | models.Q(user=user)
-            )
+            Notification.objects
+            .filter(Q(target="all") | Q(user=user))
             .order_by("-created_at")
         )
 
-        # 3️⃣ Serialize and return
+        # 3️⃣ Serialize and respond
         data = NotificationSerializer(qs, many=True).data
-        return ok("Notifications fetched", data=data)
+        return api_ok("Notifications fetched", data=data)
