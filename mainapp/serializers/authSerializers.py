@@ -129,3 +129,68 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ["id", "target", "title", "message", "sent", "created_at"]
+
+
+
+# mainapp/serializers/authSerializers.py
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from mainapp.models import Profile
+from mainapp.utils import api_err
+import random
+
+class ForgetPasswordSendOTPSerializer(serializers.Serializer):
+    phone = serializers.CharField()
+
+    def validate(self, attrs):
+        phone = attrs.get("phone")
+        try:
+            profile = Profile.objects.get(phone=phone)
+        except Profile.DoesNotExist:
+            raise api_err("No account found with this phone number.", code="NO_ACCOUNT")
+        attrs["profile"] = profile
+        return attrs
+
+    def save(self):
+        profile = self.validated_data["profile"]
+        # Generate a new OTP
+        otp = random.randint(100000, 999999)
+        profile.op_code = str(otp)
+        profile.save(update_fields=["op_code"])
+        return {"phone": profile.phone}
+
+
+class ForgetPasswordVerifySerializer(serializers.Serializer):
+    phone = serializers.CharField()
+    code = serializers.CharField()
+    new_password = serializers.CharField(min_length=6)
+
+    def validate(self, attrs):
+        phone = attrs.get("phone")
+        code = attrs.get("code")
+
+        try:
+            profile = Profile.objects.get(phone=phone)
+        except Profile.DoesNotExist:
+            raise api_err("No account found with this phone number.", code="NO_ACCOUNT")
+
+        if not profile.op_code or profile.op_code != code:
+            raise api_err("Invalid or expired OTP.", code="BAD_OTP")
+
+        attrs["profile"] = profile
+        return attrs
+
+    def save(self):
+        profile = self.validated_data["profile"]
+        new_password = self.validated_data["new_password"]
+
+        user = profile.user
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        # Reset OTP and mark verified if needed
+        profile.op_code = None
+        profile.is_verified = True
+        profile.save(update_fields=["op_code", "is_verified"])
+
+        return {"phone": profile.phone, "status": "password_reset"}

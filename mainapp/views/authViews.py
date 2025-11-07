@@ -25,7 +25,7 @@ from  mainapp.models import Notification
 # Your WhatsApp sender (already implemented by you)
 from mainapp.OTPSender.whatsappApi import send_whatsapp_template
 from  .coreViews import  _auth_user_from_request
-from mainapp.serializers.authSerializers import NotificationSerializer  # we’ll create this below
+from mainapp.serializers.authSerializers import NotificationSerializer,ForgetPasswordSendOTPSerializer,ForgetPasswordVerifySerializer  # we’ll create this below
 
 # ---------------------------------
 # Helpers
@@ -293,3 +293,41 @@ class MyNotificationsView(APIView):
         # 3️⃣ Serialize and respond
         data = NotificationSerializer(qs, many=True).data
         return api_ok("Notifications fetched", data=data)
+# ---------------------------------
+# Forget Password - Send OTP
+# ---------------------------------
+class ForgetPasswordSendOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        s = ForgetPasswordSendOTPSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        profile = s.validated_data["profile"]
+
+        # Normalize phone number for WhatsApp
+        try:
+            to_e164 = normalize_phone_e164(profile.phone)
+        except Exception:
+            return api_err("Invalid phone number format.", code="BAD_PHONE")
+
+        # Send WhatsApp OTP
+        try:
+            send_whatsapp_otp(to_e164, profile.op_code, template_name="ja_otp")
+        except Exception as e:
+            return api_err(f"Failed to send OTP via WhatsApp. {str(e)}", code="OTP_SEND_FAILED")
+
+        return api_ok("OTP sent to your WhatsApp.", data={"phone": profile.phone}, code="FORGET_OTP_SENT")
+
+
+# ---------------------------------
+# Forget Password - Verify and Reset
+# ---------------------------------
+class ForgetPasswordVerifyView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        s = ForgetPasswordVerifySerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        result = s.save()
+        return api_ok("Password reset successful.", data=result, code="PASSWORD_RESET_OK")

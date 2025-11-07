@@ -14,7 +14,8 @@ urlpatterns = [
     path("api/auth/login",     LoginView.as_view(),    name="auth-login"),
     path("api/auth/send-otp",  SendOTPView.as_view(),  name="auth-send-otp"),
     path("api/auth/verify-otp",VerifyOTPView.as_view(),name="auth-verify-otp"),
-
+    path("api/forget-password/send-otp/", ForgetPasswordSendOTPView.as_view(), name="forget_password_send_otp"),
+    path("api/forget-password/verify/", ForgetPasswordVerifyView.as_view(), name="forget_password_verify"),
     # Profile
     path("api/profile/me",     MeProfileView.as_view(), name="profile-me"),
     path("api/notifications",     MyNotificationsView.as_view(), name="profile-me"),
