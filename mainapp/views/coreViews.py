@@ -488,22 +488,22 @@ class AdFormView(APIView):
                 "key": "title",
                 "type": "text",
                 "label": "عنوان الاعلان" if locale == "ar" else "Ads Title",
-                "required": False,
+                "required": True,
                 "placeholder": "اكتب عنوان الإعلان" if locale == "ar" else "Write the ad title",
             },
             {
                 "key": "price",
                 "type": "currency",
                 "label": "السعر" if locale == "ar" else "Price",
-                "required": False,
+                "required": True,
                 "placeholder": "دينار" if locale == "ar" else "JOD",
-                "validation": {"minimum": 0}
+                "validation": {"minimum": 1}
             },
             {
                 "key": "city",
                 "type": "text",
                 "label": "المدينة" if locale == "ar" else "City",
-                "required": False,
+                "required": True,
                 "placeholder": "عمّان" if locale == "ar" else "Amman",
             },
         ]
