@@ -479,7 +479,7 @@ class AdFormView(APIView):
 
         # Dynamic fields
         fqs = (FieldDefinition.objects
-               .filter(category=cat)
+               .filter(category=cat, visible_public=True)  # ✅ add this filter
                .select_related("type")
                .order_by("order_index", "key"))
         dynamic = PublicFieldSerializer(fqs, many=True).data
@@ -492,7 +492,7 @@ class AdFormView(APIView):
             {
                 "key": "title",
                 "type": "text",
-                "label": "العنوان" if locale == "ar" else "Title",
+                "label": "عنوان الاعلان" if locale == "ar" else "Ads Title",
                 "required": False,
                 "placeholder": "اكتب عنوان الإعلان" if locale == "ar" else "Write the ad title",
             },
