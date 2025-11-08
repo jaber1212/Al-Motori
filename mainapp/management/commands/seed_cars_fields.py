@@ -211,7 +211,7 @@ class Command(BaseCommand):
         # --- Make (parent select) ---
         upsert_field(
             key="make", tkey="select",
-            label_en="Make", label_ar="الماركة",
+            label_en="Make", label_ar="نوع المركبة",
             required=True, order_index=10,
             choices=MAKE_CHOICES,
         )
@@ -219,7 +219,7 @@ class Command(BaseCommand):
         # --- Model (child select) ---
         upsert_field(
             key="model", tkey="select",
-            label_en="Model", label_ar="الموديل",
+            label_en="Model", label_ar="فئة المركبة",
             required=True, order_index=20,
             choices=MODEL_CHOICES,
             validation={"depends_on": "make"},
@@ -239,6 +239,7 @@ class Command(BaseCommand):
             label_en="Year (Range)", label_ar="السنة (نطاق)",
             required=False, order_index=35,
             choices=year_bucket_choices(),
+            visible_public=False,
         )
 
         # Mileage as SELECT (bucketed)
@@ -249,7 +250,7 @@ class Command(BaseCommand):
             choices=mileage_bucket_choices(), validation=None,
         )
 
-        upsert_field("gearbox", "select", "Gearbox", "ناقل الحركة", False, 50, choices=GEARBOX_CHOICES)
+        upsert_field("gearbox", "select", "Gearbox", "ناقل الحركة", False, 50, choices=GEARBOX_CHOICES,visible_public=False)
         upsert_field("fuel", "select", "Fuel Type", "نوع الوقود", False, 60, choices=FUEL_CHOICES)
         upsert_field("color", "select", "Color", "اللون", False, 70, choices=COLOR_CHOICES)
 

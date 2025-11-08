@@ -530,13 +530,13 @@ class AdFormView(APIView):
             )
 
             # Append isPublick ONLY in edit mode
-            core_fields.append({
-                "key": "isPublick",
-                "type": "boolean",
-                "label": "عرض الإعلان للعامة" if locale == "ar" else "Public (publish)",
-                "required": False,
-                "placeholder": "",
-            })
+            # core_fields.append({
+            #     "key": "isPublick",
+            #     "type": "boolean",
+            #     "label": "عرض الإعلان للعامة" if locale == "ar" else "Public (publish)",
+            #     "required": False,
+            #     "placeholder": "",
+            # })
 
             # Prefill core values
             core_map = {
