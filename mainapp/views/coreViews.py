@@ -90,17 +90,10 @@ def _save_upload(file_obj, subdir="ads"):
     rel_path = os.path.join(subdir, safe_name)
     default_storage.save(rel_path, ContentFile(file_obj.read()))
     return default_storage.url(rel_path)
-
 class CreateAdView(APIView):
     """
     POST /api/ads/create
-    Accepts:
-      - multipart/form-data (recommended for file uploads)
-          fields: category, title?, price?, city?, values (JSON string),
-                  images (repeatable files), video (single file)
-      - application/json (if you already have hosted URLs)
-          body: { category, title?, price?, city?, values: {...},
-                  images: ["https://..."], video: "https://..." }
+    Ensures core fields (title, price, city) are not null.
     """
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -108,10 +101,9 @@ class CreateAdView(APIView):
     def post(self, request):
         data = request.data.copy()
 
-        # --- Extract files (multipart) ---
+        # --- Extract files ---
         image_files = []
         if hasattr(request, "FILES"):
-            # support images (single key with multiple files) and images[]
             image_files = (
                 request.FILES.getlist("images")
                 or request.FILES.getlist("images[]")
@@ -121,43 +113,47 @@ class CreateAdView(APIView):
         else:
             video_file = None
 
-        # --- Build payload for serializer (exclude file fields) ---
+        # --- Build payload ---
         payload = {}
         for k in ("category", "title", "price", "city", "values", "images", "video"):
             if k in data:
                 payload[k] = data[k]
 
-        # Parse values (multipart sends it as a string)
+        # Parse JSON "values" field if needed
         if "values" in payload and isinstance(payload["values"], str):
             try:
                 payload["values"] = json.loads(payload["values"])
             except json.JSONDecodeError:
-                                return error_response("Invalid values")
+                return error_response("Invalid 'values' JSON")
 
+        # --- ✅ Core field validation ---
+        core_required = ["title", "price", "city"]
+        missing = []
 
+        for field in core_required:
+            value = payload.get(field)
+            if value in (None, "", "null", "None"):
+                missing.append(field)
 
-        # IMPORTANT:
-        # If uploading files, REMOVE images/video from payload so the serializer
-        # doesn't try to treat them as URL strings.
+        if missing:
+            readable = ", ".join(missing)
+            return error_response(f"The following required fields are missing or empty: {readable}")
+
+        # --- Clean file-related keys ---
         if image_files or video_file:
             payload.pop("images", None)
             payload.pop("video", None)
 
-        # Validate core + dynamic fields
-        s = AdCreateSerializer(data=payload, context={"request": request})
-        s.is_valid(raise_exception=True)
-        ad = s.save()  # creates Ad + AdFieldValue (no media yet)
+        # --- Validate and Save Ad ---
+        serializer = AdCreateSerializer(data=payload, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        ad = serializer.save()
 
-        # --- Persist media ---
+        # --- Media Handling ---
         MAX_IMAGES = 12
-
-        # Case A: files uploaded in multipart
         if image_files:
             if len(image_files) > MAX_IMAGES:
-                                                 return error_response("Max {MAX_IMAGES} images allowed")
-
-
-
+                return error_response(f"Max {MAX_IMAGES} images allowed")
 
             for idx, f in enumerate(image_files[:MAX_IMAGES]):
                 url = _save_upload(f, subdir="ads/images")
@@ -168,8 +164,7 @@ class CreateAdView(APIView):
             url = _save_upload(video_file, subdir="ads/videos")
             AdMedia.objects.create(ad=ad, kind=AdMedia.VIDEO, url=url, order_index=0)
 
-        # Case B: JSON with hosted URLs (no file uploads)
-        # If client sent images/video as URLs in JSON, create media from them too.
+        # Case: URLs instead of uploads
         if not image_files and isinstance(payload.get("images"), list):
             for idx, u in enumerate(payload["images"][:MAX_IMAGES]):
                 AdMedia.objects.create(ad=ad, kind=AdMedia.IMAGE, url=u, order_index=idx)
