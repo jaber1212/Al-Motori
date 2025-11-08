@@ -3,8 +3,9 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from mainapp.models import AdCategory, FieldType, FieldDefinition
 
+
 class Command(BaseCommand):
-    help = "Seed 'cars' category and common field definitions with choices (idempotent updater)"
+    help = "Seed 'cars' category and common field definitions with dependent make/model choices (idempotent updater)"
 
     def handle(self, *args, **kwargs):
         # ---- Category --------------------------------------------------------
@@ -58,6 +59,79 @@ class Command(BaseCommand):
                 ("200000+", "200,000+ km"),
             ]
             return [{"value": v, "label_en": lbl, "label_ar": lbl} for v, lbl in labels]
+
+        # ---- Cars (make → model hierarchy) ------------------------------------
+        CAR_MAKE_MODEL = {
+            "mercedes": {
+                "label_en": "Mercedes",
+                "label_ar": "مرسيدس",
+                "models": [
+                    {"value": "s300", "label_en": "S300", "label_ar": "S300"},
+                    {"value": "e200", "label_en": "E200", "label_ar": "E200"},
+                    {"value": "c180", "label_en": "C180", "label_ar": "C180"},
+                ],
+            },
+            "bmw": {
+                "label_en": "BMW",
+                "label_ar": "بي إم دبليو",
+                "models": [
+                    {"value": "320i", "label_en": "320i", "label_ar": "320i"},
+                    {"value": "520i", "label_en": "520i", "label_ar": "520i"},
+                    {"value": "x5", "label_en": "X5", "label_ar": "X5"},
+                ],
+            },
+            "audi": {
+                "label_en": "Audi",
+                "label_ar": "أودي",
+                "models": [
+                    {"value": "a3", "label_en": "A3", "label_ar": "A3"},
+                    {"value": "a4", "label_en": "A4", "label_ar": "A4"},
+                    {"value": "q7", "label_en": "Q7", "label_ar": "Q7"},
+                ],
+            },
+            "toyota": {
+                "label_en": "Toyota",
+                "label_ar": "تويوتا",
+                "models": [
+                    {"value": "camry", "label_en": "Camry", "label_ar": "كامري"},
+                    {"value": "corolla", "label_en": "Corolla", "label_ar": "كورولا"},
+                    {"value": "prado", "label_en": "Prado", "label_ar": "برادو"},
+                ],
+            },
+            "hyundai": {
+                "label_en": "Hyundai",
+                "label_ar": "هيونداي",
+                "models": [
+                    {"value": "elantra", "label_en": "Elantra", "label_ar": "النترا"},
+                    {"value": "sonata", "label_en": "Sonata", "label_ar": "سوناتا"},
+                    {"value": "tucson", "label_en": "Tucson", "label_ar": "توسان"},
+                ],
+            },
+            "kia": {
+                "label_en": "Kia",
+                "label_ar": "كيا",
+                "models": [
+                    {"value": "sportage", "label_en": "Sportage", "label_ar": "سبورتاج"},
+                    {"value": "cerato", "label_en": "Cerato", "label_ar": "سيراتو"},
+                    {"value": "seltos", "label_en": "Seltos", "label_ar": "سيلتوس"},
+                ],
+            },
+        }
+
+        MAKE_CHOICES = [
+            {"value": k, "label_en": v["label_en"], "label_ar": v["label_ar"]}
+            for k, v in CAR_MAKE_MODEL.items()
+        ]
+
+        MODEL_CHOICES = []
+        for make_key, make_data in CAR_MAKE_MODEL.items():
+            for model in make_data["models"]:
+                MODEL_CHOICES.append({
+                    "parent_value": make_key,
+                    "value": model["value"],
+                    "label_en": model["label_en"],
+                    "label_ar": model["label_ar"],
+                })
 
         GEARBOX_CHOICES = [
             {"value": "automatic",       "label_en": "Automatic",       "label_ar": "أوتوماتيك"},
@@ -134,8 +208,22 @@ class Command(BaseCommand):
                 self.stdout.write(f"~ updated {key}")
 
         # ---- Core fields ------------------------------------------------------
-        upsert_field("make",  "text",     "Make",  "الماركة", True,  10, placeholder_en="BMW",  placeholder_ar="بي إم دبليو")
-        upsert_field("model", "text",     "Model", "الموديل", True,  20, placeholder_en="320i", placeholder_ar="320i")
+        # --- Make (parent select) ---
+        upsert_field(
+            key="make", tkey="select",
+            label_en="Make", label_ar="الماركة",
+            required=True, order_index=10,
+            choices=MAKE_CHOICES,
+        )
+
+        # --- Model (child select) ---
+        upsert_field(
+            key="model", tkey="select",
+            label_en="Model", label_ar="الموديل",
+            required=True, order_index=20,
+            choices=MODEL_CHOICES,
+            validation={"depends_on": "make"},
+        )
 
         # Year as SELECT (1970..current)
         upsert_field(
@@ -161,17 +249,9 @@ class Command(BaseCommand):
             choices=mileage_bucket_choices(), validation=None,
         )
 
-        # (Optional) mileage range separate field
-        upsert_field(
-            key="mileage_range", tkey="select",
-            label_en="Mileage (Range)", label_ar="المسافة (نطاق)",
-            required=False, order_index=45,
-            choices=mileage_bucket_choices(),
-        )
-
-        upsert_field("gearbox", "select", "Gearbox",    "ناقل الحركة",       False, 50, choices=GEARBOX_CHOICES)
-        upsert_field("fuel",    "select", "Fuel Type",  "نوع الوقود",        False, 60, choices=FUEL_CHOICES)
-        upsert_field("color",   "select", "Color",      "اللون",              False, 70, choices=COLOR_CHOICES)
+        upsert_field("gearbox", "select", "Gearbox", "ناقل الحركة", False, 50, choices=GEARBOX_CHOICES)
+        upsert_field("fuel", "select", "Fuel Type", "نوع الوقود", False, 60, choices=FUEL_CHOICES)
+        upsert_field("color", "select", "Color", "اللون", False, 70, choices=COLOR_CHOICES)
 
         upsert_field(
             key="description", tkey="textarea",
