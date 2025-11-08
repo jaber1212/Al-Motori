@@ -3,282 +3,368 @@
 <html lang="{{ lang|default:'en' }}">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ meta.title|default:ad.title }}</title>
   {% if meta.description %}<meta name="description" content="{{ meta.description }}">{% endif %}
   {% if meta.image %}<meta property="og:image" content="{{ meta.image }}">{% endif %}
   <meta property="og:title" content="{{ meta.title|default:ad.title }}">
   <meta property="og:url" content="{{ meta.url }}">
 
-  <!-- Optional external sheet hook -->
-  <link rel="stylesheet" href="{% static 'css/ad-page.css' %}">
-
   <style>
-    :root{
-      --bg:#f6f7f9;
+    :root {
+      --bg:#f8fafc;
       --card:#fff;
-      --text:#111827; /* slate-900 */
-      --muted:#6b7280; /* slate-500 */
-      --line:#e5e7eb; /* gray-200 */
-      --brand:#2563eb; /* blue-600 */
-      --brand-weak:#e6f0ff;
-      --success:#059669; /* emerald-600 */
-      --danger:#dc2626; /* red-600 */
-      --star:#f59e0b; /* amber-500 */
+      --text:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --brand:#2563eb;
+      --brand-hover:#1e4db7;
       --radius:16px;
       --shadow:0 10px 25px rgba(0,0,0,.06);
     }
-    html[lang="ar"] body{direction:rtl}
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Naskh Arabic","Geeza Pro",sans-serif;margin:0;background:var(--bg);color:var(--text)}
-    a{color:var(--brand);text-decoration:none}
-    .container{max-width:1200px;margin:24px auto;padding:0 16px}
 
-    /* Top header bar (breadcrumb/share) */
-    .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
-    .crumbs{font-size:13px;color:var(--muted)}
-    .actions{display:flex;gap:8px}
-    .btn-icon{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+    html[lang="ar"] body { direction: rtl; }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; background:var(--bg); color:var(--text);
+      font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Naskh Arabic", sans-serif;
+      line-height:1.6;
+    }
+    a { color:var(--brand); text-decoration:none; }
+    img { max-width:100%; height:auto; display:block; }
 
-    /* Main grid */
-    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
-    @media (max-width: 980px){.grid{grid-template-columns:1fr}}
+    .container {
+      max-width:900px;
+      margin:0 auto;
+      padding:16px;
+    }
 
-    /* Left column: media + details */
-    .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-    .pad{padding:16px}
+    /* Header / breadcrumb */
+    .topbar {
+      display:flex; justify-content:space-between; align-items:center;
+      flex-wrap:wrap; gap:8px; margin-bottom:16px;
+    }
+    .crumbs {
+      font-size:13px; color:var(--muted);
+    }
+    .actions {
+      display:flex; gap:8px;
+    }
+    .btn-icon {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 12px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#fff;
+      font-size:14px;
+      color:var(--text);
+    }
 
-    .media{display:grid;grid-template-columns:88px 1fr;gap:12px}
-    @media (max-width: 640px){.media{grid-template-columns:1fr}}
+    /* Card container */
+    .card {
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      padding:16px;
+    }
 
-    .thumbs{display:flex;flex-direction:column;gap:8px}
-    .thumbs button{border:1px solid var(--line);background:#fff;border-radius:12px;overflow:hidden;padding:0;height:64px;cursor:pointer}
-    .thumbs img{width:100%;height:100%;object-fit:cover;display:block}
-    .viewer{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;min-height:420px}
-    .viewer img,.viewer video{max-width:100%;max-height:560px;width:100%;height:auto;display:block}
+    /* Viewer (main image/video) */
+    .viewer {
+      position:relative;
+      background:#000;
+      border-radius:12px;
+      overflow:hidden;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:320px;
+    }
+    .viewer img, .viewer video {
+      width:100%;
+      height:auto;
+      max-height:500px;
+      object-fit:contain;
+    }
 
-    /* Title block */
-    .title-wrap{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-    h1.title{font-size:22px;line-height:1.3;margin:0}
-    .meta{color:var(--muted);font-size:13px}
-    .rating{display:flex;align-items:center;gap:8px;font-size:13px}
-    .stars{color:var(--star)}
+    /* Thumbnails strip under main image */
+    .media-strip {
+      display:flex;
+      gap:10px;
+      overflow-x:auto;
+      padding:10px 0;
+      margin-top:8px;
+      scrollbar-width:thin;
+    }
+    .media-strip button {
+      border:2px solid transparent;
+      border-radius:10px;
+      background:none;
+      padding:0;
+      cursor:pointer;
+      flex:0 0 auto;
+      transition:border-color .3s;
+    }
+    .media-strip button.active,
+    .media-strip button:hover {
+      border-color:var(--brand);
+    }
+    .media-strip img {
+      width:80px;
+      height:80px;
+      border-radius:8px;
+      object-fit:cover;
+    }
+
+    /* Title + meta */
+    .title-wrap {
+      margin-top:16px;
+    }
+    .title-wrap h1 {
+      font-size:24px;
+      margin:0 0 4px;
+      line-height:1.3;
+    }
+    .meta {
+      font-size:13px;
+      color:var(--muted);
+    }
 
     /* Description */
-    .section{margin-top:16px}
-    .section h3{font-size:16px;margin:0 0 8px}
-    .desc{color:#111827;line-height:1.6;font-size:15px;white-space:pre-wrap}
+    .section {
+      margin-top:20px;
+    }
+    .section h3 {
+      margin:0 0 8px;
+      font-size:16px;
+      font-weight:600;
+    }
+    .desc {
+      font-size:15px;
+      color:var(--text);
+      white-space:pre-wrap;
+    }
 
-    /* Specs (core + dynamic) */
-    .specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-    .spec{background:#fafbfc;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-    .spec .label{font-size:12px;color:var(--muted);margin:0 0 4px}
-    .spec .value{font-size:15px;font-weight:600;margin:0}
+    /* Specs grid */
+    .specs {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:10px;
+    }
+    .spec {
+      background:#f9fafb;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px 12px;
+    }
+    .spec .label {
+      font-size:12px;
+      color:var(--muted);
+      margin:0 0 4px;
+    }
+    .spec .value {
+      font-size:15px;
+      font-weight:600;
+      color:var(--text);
+      margin:0;
+    }
 
-    /* Right column: buy box */
-    .buybox{position:sticky;top:16px}
-    .box{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-    .price{display:flex;align-items:flex-end;gap:8px}
-    .price .amount{font-size:28px;font-weight:800}
-    .price .unit{color:var(--muted);font-size:13px}
-    .availability{margin-top:8px;color:var(--success);font-weight:600}
-    .cta{display:flex;flex-direction:column;gap:10px;margin-top:14px}
-    .btn{display:inline-flex;justify-content:center;align-items:center;gap:8px;padding:12px;border-radius:12px;border:1px solid transparent;font-weight:700;cursor:pointer}
-    .btn.buy{background:var(--brand);color:#fff}
-    .btn.outline{background:#fff;border-color:var(--line)}
-    .contact{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    /* CTA button */
+    .cta {
+      margin-top:24px;
+      display:flex;
+      justify-content:center;
+    }
+    .btn {
+      display:inline-flex;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+      background:var(--brand);
+      color:#fff;
+      border:none;
+      border-radius:12px;
+      padding:14px 20px;
+      font-size:16px;
+      font-weight:700;
+      cursor:pointer;
+      width:100%;
+      max-width:360px;
+      transition:background .3s;
+    }
+    .btn:hover { background:var(--brand-hover); }
 
-    .seller{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:13px;color:var(--muted)}
+    /* Seller info */
+    .seller {
+      margin-top:20px;
+      font-size:14px;
+      color:var(--muted);
+      border-top:1px dashed var(--line);
+      padding-top:12px;
+    }
 
-    /* Inline gallery strip under title (mobile like Amazon) */
-    .strip{display:flex;gap:8px;overflow:auto;padding:10px 0}
-    .strip img{height:72px;width:auto;border-radius:10px;border:1px solid var(--line)}
-
-    /* RTL tweaks */
-    html[lang="ar"] .price .amount{font-weight:900}
+    /* Responsive tweaks */
+    @media (max-width:640px) {
+      .title-wrap h1 { font-size:20px; }
+      .btn { font-size:15px; padding:12px 16px; }
+      .media-strip img { width:64px; height:64px; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Topbar -->
     <div class="topbar">
-      <div class="crumbs">
-        <a href="/">{% if lang == 'ar' %}الرئيسية{% else %}Home{% endif %}</a>
-        <span>›</span>
-        <a href="/c/{{ category.slug }}">{{ category.name }}</a>
-        <span>›</span>
-        <span>{{ ad.code }}</span>
-      </div>
+
       <div class="actions">
-        <a class="btn-icon" href="javascript:window.print()" aria-label="Print">🖨️ <span>{% if lang == 'ar' %}طباعة{% else %}Print{% endif %}</span></a>
-        <a class="btn-icon" href="{{ meta.url }}" aria-label="Share">🔗 <span>{% if lang == 'ar' %}مشاركة{% else %}Share{% endif %}</span></a>
+        <a class="btn-icon" href="javascript:window.print()">🖨️ {% if lang == 'ar' %}طباعة{% else %}Print{% endif %}</a>
+        <a class="btn-icon" href="{{ meta.url }}">🔗 {% if lang == 'ar' %}مشاركة{% else %}Share{% endif %}</a>
       </div>
     </div>
 
-    <div class="grid">
-      <!-- LEFT: Media + Title + Description + Specs -->
-      <section class="card pad">
-        <!-- Media block -->
-        <div class="media">
-          <!-- Thumbnails (images + optional video thumb) -->
-          <div class="thumbs" id="thumbs">
-            {% if images %}
-              {% for u in images %}
-              <button type="button" data-media="img" data-src="{{ u }}">
-                <img src="{{ u }}" alt="thumb {{ forloop.counter }}">
-              </button>
-              {% endfor %}
-            {% endif %}
-            {% if video %}
-              <button type="button" data-media="video" data-src="{{ video }}">
-                <img src="{% static 'img/video-thumb.png' %}" alt="video">
-              </button>
-            {% endif %}
-          </div>
+    <!-- Ad Card -->
+    <section class="card">
+      <!-- Media viewer -->
+      <div class="viewer" id="viewer">
+        {% if images and images.0 %}
+          <img id="viewerImg" src="{{ images.0 }}" alt="main image">
+        {% elif video %}
+          <video id="viewerVideo" src="{{ video }}" controls playsinline></video>
+        {% else %}
+          <img id="viewerImg" src="{% static 'img/placeholder.png' %}" alt="placeholder">
+        {% endif %}
+      </div>
 
-          <!-- Viewer -->
-          <div class="viewer" id="viewer">
-            {% if images and images.0 %}
-              <img id="viewerImg" src="{{ images.0 }}" alt="main image">
-            {% elif video %}
-              <video id="viewerVideo" src="{{ video }}" controls playsinline></video>
-            {% else %}
-              <img id="viewerImg" src="{% static 'img/placeholder.png' %}" alt="placeholder">
-            {% endif %}
-          </div>
+      <!-- Thumbnails -->
+      {% if images %}
+      <div class="media-strip" id="thumbs">
+        {% for u in images %}
+          <button type="button" data-media="img" data-src="{{ u }}">
+            <img src="{{ u }}" alt="thumb {{ forloop.counter }}">
+          </button>
+        {% endfor %}
+        {% if video %}
+      <button type="button" data-media="video" data-src="{{ video }}">
+  <div style="position:relative;">
+    <img src="{{ images.0|default:'{% static "img/p.jpeg" %}' }}" alt="video thumbnail">
+    <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                 font-size:38px;color:white;text-shadow:0 0 8px rgba(0,0,0,0.7);">▶️</span>
+  </div>
+</button>
+
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Title and details -->
+      <div class="title-wrap">
+        <h1>{{ ad.title|default:category.name }}</h1>
+        <div class="meta">
+          {{ category.name }}
+          {% if ad.city %} • {{ ad.city }}{% endif %}
+          {% if ad.published_at %} • {{ ad.published_at|date:"Y-m-d H:i" }}{% endif %}
+          • {{ ad.code }}
         </div>
+      </div>
 
-        <!-- Title + meta + quick rating -->
-        <div class="title-wrap">
-          <h1 class="title">{{ ad.title|default:category.name }}</h1>
-          <div class="rating">
-            <div class="stars">★★★★★</div>
-            <div class="meta">{{ category.name }} • {% if ad.city %}{{ ad.city }} • {% endif %}{% if ad.published_at %}{{ ad.published_at|date:"Y-m-d H:i" }} • {% endif %}{{ ad.code }}</div>
-          </div>
-        </div>
+      <!-- Description -->
+      {% if ad.description %}
+      <div class="section">
+        <h3>{% if lang == 'ar' %}الوصف{% else %}Description{% endif %}</h3>
+        <div class="desc">{{ ad.description|linebreaksbr }}</div>
+      </div>
+      {% endif %}
 
-        <!-- Inline gallery strip under the title (mobile friendly) -->
-        {% if images %}
-        <div class="strip">
-          {% for u in images %}
-            <img src="{{ u }}" alt="photo {{ forloop.counter }}">
+      <!-- Specs -->
+      <div class="section">
+        <h3>{% if lang == 'ar' %}البيانات الأساسية{% else %}Core Info{% endif %}</h3>
+        <div class="specs">
+          {% for f in core %}
+            {% if f.value %}
+              <div class="spec">
+                <p class="label">{{ f.label }}</p>
+                <p class="value">{{ f.value }}</p>
+              </div>
+            {% endif %}
           {% endfor %}
         </div>
-        {% endif %}
+      </div>
 
-        <!-- Description (if provided) -->
-        {% if ad.description %}
-        <div class="section">
-          <h3>{% if lang == 'ar' %}الوصف{% else %}Description{% endif %}</h3>
-          <div class="desc">{{ ad.description|linebreaksbr }}</div>
-        </div>
-        {% endif %}
-
-        <!-- Specs: Core Info -->
-        <div class="section">
-          <h3>{% if lang == 'ar' %}البيانات الأساسية{% else %}Core Info{% endif %}</h3>
-          <div class="specs">
-            {% for f in core %}
-              {% if f.value %}
+      {% if dynamic %}
+      <div class="section">
+        <h3>{% if lang == 'ar' %}تفاصيل إضافية{% else %}More Details{% endif %}</h3>
+        <div class="specs">
+          {% for f in dynamic %}
+            {% if f.value %}
               <div class="spec">
                 <p class="label">{{ f.label }}</p>
                 <p class="value">{{ f.value }}</p>
               </div>
-              {% endif %}
-            {% endfor %}
-          </div>
+            {% endif %}
+          {% endfor %}
         </div>
+      </div>
+      {% endif %}
 
-        <!-- Specs: Dynamic fields -->
-        {% if dynamic %}
-        <div class="section">
-          <h3>{% if lang == 'ar' %}تفاصيل إضافية{% else %}More Details{% endif %}</h3>
-          <div class="specs">
-            {% for f in dynamic %}
-              {% if f.value %}
-              <div class="spec">
-                <p class="label">{{ f.label }}</p>
-                <p class="value">{{ f.value }}</p>
-              </div>
-              {% endif %}
-            {% endfor %}
-          </div>
+      <!-- Call Seller Button -->
+        {% if phone %}
+        <div class="cta">
+          <a href="tel:{{ phone }}" class="btn">
+            {% if lang == 'ar' %}اتصال بالبائع{% else %}Call Seller{% endif %}
+          </a>
         </div>
         {% endif %}
 
-      </section>
 
-      <!-- RIGHT: Buy Box / Contact -->
-      <aside class="buybox">
-        <div class="box pad">
-          <div class="price">
-            <div class="amount">
-              {% if ad.price %}{{ ad.price }}{% else %}
-                {% for f in core %}{% if f.label|lower == 'price' or f.label|lower == 'السعر' %}{{ f.value }}{% endif %}{% endfor %}
-              {% endif %}
-            </div>
-            {% if ad.currency %}<div class="unit">{{ ad.currency }}</div>{% endif %}
-          </div>
-          <div class="availability">{% if ad.is_available %}{% if lang == 'ar' %}متوفر{% else %}In stock{% endif %}{% else %}{% if lang == 'ar' %}غير متوفر{% else %}Out of stock{% endif %}{% endif %}</div>
-
-          <div class="cta">
-            <button class="btn buy" id="buyBtn">{% if lang == 'ar' %}اطلب الآن{% else %}Buy Now{% endif %}</button>
-            <button class="btn outline" id="addCart">{% if lang == 'ar' %}أضف إلى السلة{% else %}Add to Cart{% endif %}</button>
-            <div class="contact">
-              {% if ad.phone %}
-                <a class="btn outline" href="tel:{{ ad.phone }}">📞 {% if lang == 'ar' %}اتصال{% else %}Call{% endif %}</a>
-              {% endif %}
-              {% if ad.whatsapp %}
-                <a class="btn outline" href="https://wa.me/{{ ad.whatsapp }}" target="_blank" rel="noopener">💬 WhatsApp</a>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="seller">
-            <div><strong>{% if lang == 'ar' %}البائع{% else %}Seller{% endif %}:</strong> {{ ad.seller_name|default:"—" }}</div>
-            <div><strong>{% if lang == 'ar' %}يشحن من{% else %}Ships from{% endif %}:</strong> {{ ad.city|default:"—" }}</div>
-            <div><strong>{% if lang == 'ar' %}رمز الإعلان{% else %}Ad Code{% endif %}:</strong> {{ ad.code }}</div>
-          </div>
-        </div>
-
-        <!-- Safety tips card -->
-        <div class="box pad" style="margin-top:12px">
-          <h3 style="margin:0 0 8px;font-size:15px">{% if lang == 'ar' %}نصائح الأمان{% else %}Safety Tips{% endif %}</h3>
-          <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.6">
-            <li>{% if lang == 'ar' %}قابل في مكان عام{% else %}Meet in public places.{% endif %}</li>
-            <li>{% if lang == 'ar' %}افحص المنتج جيدًا{% else %}Inspect items carefully.{% endif %}</li>
-            <li>{% if lang == 'ar' %}تجنب التحويلات المسبقة{% else %}Avoid upfront transfers.{% endif %}</li>
-          </ul>
-        </div>
-      </aside>
-    </div>
+      <!-- Seller Info -->
+      <div class="seller">
+        <!--<div><strong>{% if lang == 'ar' %}البائع{% else %}Seller{% endif %}:</strong> {{ ad.seller_name|default:"—" }}</div>-->
+        <!--<div>-->
+            <strong>{% if lang == 'ar' %}المدينة{% else %}City{% endif %}:</strong> {{ ad.city|default:"—" }}</div>
+        <div><strong>{% if lang == 'ar' %}رمز الإعلان{% else %}Ad Code{% endif %}:</strong> {{ ad.code }}</div>
+      </div>
+    </section>
   </div>
 
+  <!-- JS for gallery preview -->
   <script>
-    // Simple gallery switcher (no dependencies)
     (function(){
-      var thumbs = document.getElementById('thumbs');
-      var viewer = document.getElementById('viewer');
-      if(!thumbs || !viewer) return;
+      const thumbs = document.getElementById('thumbs');
+      const viewer = document.getElementById('viewer');
+      if (!thumbs || !viewer) return;
 
-      function showImage(src){
+      function showImage(src, btn){
         viewer.innerHTML = '';
-        var img = document.createElement('img');
-        img.id = 'viewerImg';
-        img.src = src; img.alt = 'image';
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = 'image';
+        img.style.opacity = 0;
         viewer.appendChild(img);
+        requestAnimationFrame(()=> img.style.transition = 'opacity .3s', img.style.opacity = 1);
+        thumbs.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
       }
-      function showVideo(src){
+
+      function showVideo(src, btn){
         viewer.innerHTML = '';
-        var v = document.createElement('video');
-        v.id = 'viewerVideo'; v.src = src; v.controls = true; v.playsInline = true;
+        const v = document.createElement('video');
+        v.src = src;
+        v.controls = true;
+        v.playsInline = true;
+        v.style.opacity = 0;
         viewer.appendChild(v);
+        requestAnimationFrame(()=> v.style.transition = 'opacity .3s', v.style.opacity = 1);
+        thumbs.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
       }
-      thumbs.addEventListener('click', function(e){
-        var btn = e.target.closest('button');
+
+      thumbs.addEventListener('click', e=>{
+        const btn = e.target.closest('button');
         if(!btn) return;
-        var kind = btn.getAttribute('data-media');
-        var src = btn.getAttribute('data-src');
-        if(kind === 'video') showVideo(src); else showImage(src);
+        const kind = btn.dataset.media;
+        const src = btn.dataset.src;
+        if(kind === 'video') showVideo(src, btn);
+        else showImage(src, btn);
       });
     })();
   </script>

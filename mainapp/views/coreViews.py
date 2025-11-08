@@ -975,7 +975,7 @@ def ad_public_page_by_code(request, code: str):
     )
 
     core = [
-        {"key": "title", "label": "العنوان" if lang == "ar" else "Title", "value": ad.title or ""},
+        {"key": "title", "label": "عنوان الاعلان" if lang == "ar" else "Title", "value": ad.title or ""},
         {"key": "price", "label": "السعر" if lang == "ar" else "Price", "value": (f"{ad.price:.2f}" if ad.price is not None else "")},
         {"key": "city",  "label": "المدينة" if lang == "ar" else "City",  "value": ad.city or ""},
         {"key": "code",  "label": "رمز الإعلان" if lang == "ar" else "Ad Code", "value": ad.code},
