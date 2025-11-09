@@ -961,7 +961,7 @@ def ad_public_page_by_code(request, code: str):
     ad = get_object_or_404(
         Ad.objects
           .filter(status="published")
-          .select_related("category")
+          .select_related("category", "user__profile")  # ✅ include profile
           .prefetch_related(
               Prefetch("values", queryset=AdFieldValue.objects.select_related("field", "field__type")),
               Prefetch("media",  queryset=AdMedia.objects.order_by("kind", "order_index", "id")),
@@ -1002,12 +1002,10 @@ def ad_public_page_by_code(request, code: str):
     images = [m.url for m in ad.media.all() if m.kind == AdMedia.IMAGE]
     video  = next((m.url for m in ad.media.all() if m.kind == AdMedia.VIDEO), None)
 
-    # ✅ Extract phone number from dynamic fields like 'cars.Phone' or similar
+    # ✅ Get phone number from user profile, not dynamic field
     phone_number = None
-    for d in dynamic:
-        if "phone" in d["key"].lower():
-            phone_number = str(d["value_raw"]).strip().replace('"', '')
-            break
+    if hasattr(ad, "user") and hasattr(ad.user, "profile"):
+        phone_number = getattr(ad.user.profile, "phone", None)
 
     context = {
         "lang": lang,
@@ -1026,8 +1024,7 @@ def ad_public_page_by_code(request, code: str):
             "image": images[0] if images else None,
             "url": request.build_absolute_uri(),
         },
-        # ✅ Add phone into context (even if not in Ad model)
-        "phone": phone_number or getattr(ad, "phone", None),
+        "phone": phone_number,  # ✅ pulled from profile
     }
     return render(request, "ads/ad_detail.html", context)
 
