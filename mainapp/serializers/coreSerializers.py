@@ -111,28 +111,43 @@ class AdCreateSerializer(serializers.Serializer):
     def create(self, validated):
         user = self.context["request"].user
         category = validated["category"]
+
         ad = Ad.objects.create(
-            owner=user, category=category,
+            owner=user,
+            category=category,
             title=validated.get("title", ""),
             price=validated.get("price"),
             city=validated.get("city", ""),
             status="draft",
         )
 
-        # Dynamic values
+        # --- Dynamic Field Values ---
         values = validated.get("values") or {}
         if values:
-            defs = {f.key: f for f in FieldDefinition.objects.filter(category=category)}
-            AdFieldValue.objects.bulk_create([
-                AdFieldValue(ad=ad, field=defs[k], value=v) for k, v in values.items()
-                if k in defs
-            ])
+            # case-insensitive dict of field definitions for this category
+            defs = {
+                f.key.lower(): f for f in FieldDefinition.objects.filter(category=category)
+            }
 
-        # Media (URLs path)
+            to_create = []
+            for key, val in values.items():
+                fd = defs.get(key.lower())
+                if not fd:
+                    # optionally log the missing field for debugging
+                    print(f"[⚠️] Skipped unknown field key: {key}")
+                    continue
+
+                to_create.append(AdFieldValue(ad=ad, field=fd, value=val))
+
+            if to_create:
+                AdFieldValue.objects.bulk_create(to_create)
+
+        # --- Media (URLs path) ---
         images = validated.get("images") or []
         if images:
             AdMedia.objects.bulk_create([
-                AdMedia(ad=ad, kind=AdMedia.IMAGE, url=u, order_index=i) for i, u in enumerate(images)
+                AdMedia(ad=ad, kind=AdMedia.IMAGE, url=u, order_index=i)
+                for i, u in enumerate(images[:MAX_IMAGES])
             ])
 
         video = validated.get("video")
@@ -162,10 +177,10 @@ class AdUpdateSerializer(serializers.Serializer):
         # Dynamic
         if "values" in validated:
             existing = {v.field.key: v for v in ad.values.select_related("field")}
-            defs = {f.key: f for f in FieldDefinition.objects.filter(category=ad.category)}
+            defs = {f.key.lower(): f for f in FieldDefinition.objects.filter(category=ad.category)}
             to_create, to_update = [], []
             for key, val in (validated["values"] or {}).items():
-                fd = defs.get(key)
+                fd = defs.get(key.lower())
                 if not fd:
                     continue
                 if key in existing:
