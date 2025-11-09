@@ -466,7 +466,7 @@ class AdFormView(APIView):
         locale = (request.query_params.get("locale") or "en").lower()
         if locale not in ("en", "ar"):
             locale = "en"
-
+        #
         ad_id = request.query_params.get("ad_id")
         user = _auth_user_from_request(request)
 
