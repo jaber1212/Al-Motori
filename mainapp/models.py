@@ -92,7 +92,7 @@ class Ad(models.Model):
 class AdFieldValue(models.Model):
     ad    = models.ForeignKey(Ad, on_delete=models.CASCADE, related_name='values')
     field = models.ForeignKey(FieldDefinition, on_delete=models.CASCADE, related_name='ad_values')
-    value = models.JSONField(blank=True, null=True)   # str/num/bool/list/dict
+    value = models.JSONField(default=dict, blank=True, null=True)
     locale = models.CharField(max_length=5, blank=True, null=True)  # optional 'en'/'ar'
     updated_at = models.DateTimeField(auto_now=True)
 

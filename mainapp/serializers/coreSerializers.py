@@ -84,8 +84,10 @@ class AdCreateSerializer(serializers.Serializer):
             t = fd.type.key if fd.type else "text"
             if t in ("number", "currency") and not isinstance(v, (int, float)):
                 raise serializers.ValidationError({k: "Must be a number"})
-            if t in ("text", "textarea", "select") and not isinstance(v, str):
-                raise serializers.ValidationError({k: "Must be a string"})
+            if t in ("text", "textarea", "select"):
+                if not isinstance(v, (str, dict)):
+                    raise serializers.ValidationError({k: "Must be a string or dict"})
+
             if t == "multiselect" and not (isinstance(v, list) and all(isinstance(x, str) for x in v)):
                 raise serializers.ValidationError({k: "Must be a list of strings"})
 
@@ -122,12 +124,14 @@ class AdCreateSerializer(serializers.Serializer):
         )
 
         # --- Dynamic Field Values ---
+        # inside AdCreateSerializer
         values = validated.get("values") or {}
         if values:
-            # case-insensitive dict of field definitions for this category
-            defs = {
-                f.key.lower(): f for f in FieldDefinition.objects.filter(category=category)
-            }
+            defs = {f.key: f for f in FieldDefinition.objects.filter(category=category)}
+            AdFieldValue.objects.bulk_create([
+                AdFieldValue(ad=ad, field=defs[k], value=v) for k, v in values.items()
+                if k in defs
+            ])
 
             to_create = []
             for key, val in values.items():
