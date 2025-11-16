@@ -960,21 +960,22 @@ def ad_public_page_by_code(request, code: str):
 
     ad = get_object_or_404(
         Ad.objects
-          .filter(status="published")
-          .select_related("category", "user__profile")  # ✅ include profile
-          .prefetch_related(
-              Prefetch("values", queryset=AdFieldValue.objects.select_related("field", "field__type")),
-              Prefetch("media",  queryset=AdMedia.objects.order_by("kind", "order_index", "id")),
-          ),
+            .filter(status="published")
+            .select_related("category", "owner", "owner__profile")
+            .prefetch_related(
+                Prefetch("values", queryset=AdFieldValue.objects.select_related("field", "field__type")),
+                Prefetch("media", queryset=AdMedia.objects.order_by("kind", "order_index", "id")),
+            ),
         code=code
     )
 
     core = [
         {"key": "title", "label": "عنوان الاعلان" if lang == "ar" else "Title", "value": ad.title or ""},
-        {"key": "price", "label": "السعر" if lang == "ar" else "Price", "value": (f"{ad.price:.2f}" if ad.price is not None else "")},
-        {"key": "city",  "label": "المدينة" if lang == "ar" else "City",  "value": ad.city or ""},
-        {"key": "code",  "label": "رمز الإعلان" if lang == "ar" else "Ad Code", "value": ad.code},
-        {"key": "date",  "label": "تاريخ النشر" if lang == "ar" else "Published",
+        {"key": "price", "label": "السعر" if lang == "ar" else "Price",
+         "value": (f"{ad.price:.2f}" if ad.price is not None else "")},
+        {"key": "city", "label": "المدينة" if lang == "ar" else "City", "value": ad.city or ""},
+        {"key": "code", "label": "رمز الإعلان" if lang == "ar" else "Ad Code", "value": ad.code},
+        {"key": "date", "label": "تاريخ النشر" if lang == "ar" else "Published",
          "value": ad.published_at.strftime("%Y-%m-%d %H:%M") if ad.published_at else ""},
     ]
 
@@ -1000,12 +1001,11 @@ def ad_public_page_by_code(request, code: str):
     dynamic.sort(key=lambda x: (x["order_index"], x["key"]))
 
     images = [m.url for m in ad.media.all() if m.kind == AdMedia.IMAGE]
-    video  = next((m.url for m in ad.media.all() if m.kind == AdMedia.VIDEO), None)
+    video = next((m.url for m in ad.media.all() if m.kind == AdMedia.VIDEO), None)
 
-    # ✅ Get phone number from user profile, not dynamic field
     phone_number = None
-    if hasattr(ad, "user") and hasattr(ad.user, "profile"):
-        phone_number = getattr(ad.user.profile, "phone", None)
+    if hasattr(ad, "owner") and hasattr(ad.owner, "profile"):
+        phone_number = getattr(ad.owner.profile, "phone", None)
 
     context = {
         "lang": lang,
@@ -1024,8 +1024,9 @@ def ad_public_page_by_code(request, code: str):
             "image": images[0] if images else None,
             "url": request.build_absolute_uri(),
         },
-        "phone": phone_number,  # ✅ pulled from profile
+        "phone": phone_number,
     }
+
     return render(request, "ads/ad_detail.html", context)
 
 
