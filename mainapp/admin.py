@@ -121,7 +121,6 @@ from .views.stickerViews import generate_qr_sticker_sheet   # تأكد من مك
 
 
 @admin.register(QRCode)
-@admin.register(QRCode)
 class QRCodeAdmin(admin.ModelAdmin):
     list_display = (
         "code", "batch", "ad",
