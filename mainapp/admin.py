@@ -93,6 +93,17 @@ def export_unassigned(modeladmin, request, queryset):
     return export_qr_excel_response(qs, filename_prefix="qr-unassigned")
 
 
+from .helperUtilis.admin_utils import export_qr_excel_response
+
+@admin.action(description="Create NEW 100 QR Codes and Export")
+def create_and_export_qr_codes(modeladmin, request, queryset):
+    # 1. Create new unique batch of 100 QR codes
+    new_qrs = create_qr_batch(count=100)
+
+    # 2. Export ONLY the new batch to Excel
+    return export_qr_excel_response(new_qrs, filename_prefix="qr-new-batch")
+
+
 
 @admin.action(description="Export Not Activated QR codes to Excel")
 def export_not_activated(modeladmin, request, queryset):
@@ -113,7 +124,7 @@ class QRCodeAdmin(admin.ModelAdmin):
     search_fields = ("code", "batch", "ad__code")
     readonly_fields = ("public_link",)
 
-    actions = [export_unassigned,export_not_activated,export_first_100_unassigned]  # 👈 add it here
+    actions = [create_and_export_qr_codes]  # 👈 add it here
     actions_on_top = True          # nice UX
     actions_selection_counter = False
 
@@ -194,3 +205,39 @@ class NotificationAdmin(admin.ModelAdmin):
                         self.message_user(request, f"⚠️ No player_id for {obj.user.username}", level="warning")
                 except Profile.DoesNotExist:
                     self.message_user(request, f"❌ No profile found for {obj.user.username}", level="error")
+
+import uuid
+from .models import QRCode
+
+# utils.py
+import uuid
+from .models import QRCode
+
+def generate_unique_qr_code():
+    """Generate unique, non-duplicated QR code."""
+    while True:
+        code = uuid.uuid4().hex[:10].upper()  # Example: F2A93C76B1
+        if not QRCode.objects.filter(code=code).exists():
+            return code
+
+
+def create_qr_batch(count=100, batch_name=None):
+    """Create a clean batch of unique QR codes."""
+    if batch_name is None:
+        batch_name = f"batch-{uuid.uuid4().hex[:6]}"
+
+    qr_list = []
+
+    for _ in range(count):
+        qr_list.append(
+            QRCode(
+                code=generate_unique_qr_code(),
+                batch=batch_name,
+                is_assigned=False,
+                is_activated=False,
+            )
+        )
+
+    QRCode.objects.bulk_create(qr_list)
+
+    return QRCode.objects.filter(batch=batch_name).order_by("code")
