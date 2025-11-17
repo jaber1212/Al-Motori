@@ -68,35 +68,31 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Welcome to Al-Motori Admin",
     "copyright": "© 2025 Al-Motori",
 
-    # ==== Icons for each model ====
+    # ==== Icons for each model + app ====
     "icons": {
+        "mainapp": "fas fa-folder-open",
+
         "mainapp.Ad": "fas fa-car",
         "mainapp.Profile": "fas fa-user-circle",
         "mainapp.QRCode": "fas fa-qrcode",
         "mainapp.QRScanLog": "fas fa-history",
         "mainapp.Notification": "fas fa-bell",
 
-        # Hidden from user but you can still style them
+        # hidden models
         "mainapp.FieldType": "fas fa-tag",
         "mainapp.FieldDefinition": "fas fa-list-alt",
-    },
-
-    # ==== App icons ====
-    "icons": {
-        "mainapp": "fas fa-folder-open",
     },
 
     # ==== Sidebar ====
     "show_sidebar": True,
     "navigation_expanded": True,
 
-    # ==== Custom CSS if needed ====
+    # ==== Optional Custom CSS ====
     "custom_css": "admin/custom.css",
 
     # Sidebar menu ordering
     "order_with_respect_to": ["mainapp"],
 }
-
 
 JAZZMIN_SETTINGS.update({
     "custom_links": {
@@ -108,6 +104,7 @@ JAZZMIN_SETTINGS.update({
         }],
     },
 })
+
 
 JAZZMIN_UI_TWEAKS = {
     "theme": "cosmo",  # Themes: cosmo, cyborg, darkly, flatly, journal, litera, lumen, lux, materia, minty, pulse, sandstone, simplex, sketchy, slate, solar, spacelab, superhero, united, yeti.
