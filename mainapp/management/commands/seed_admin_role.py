@@ -3,43 +3,53 @@ from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 
 from mainapp.models import (
-    Profile, FieldType, AdCategory, FieldDefinition,
-    Ad, AdFieldValue, AdMedia, QRCode, QRScanLog,Notification
+    Profile, Ad, AdCategory, AdFieldValue, AdMedia,
+    QRCode, QRScanLog,Notification
 )
 
-
 class Command(BaseCommand):
-    help = "Create Admin group with very specific permissions"
+    help = "Create Admin role with correct permissions"
 
     def handle(self, *args, **kwargs):
 
-        # Create or get the group
         admin_group, _ = Group.objects.get_or_create(name="Admin")
 
-        # ----- ALWAYS ALLOW VIEW permission for ALL models -----
-        all_models = [
-            Profile, FieldType, AdCategory, FieldDefinition,
-            Ad, AdFieldValue, AdMedia, QRCode, QRScanLog,
-            Notification
+        allow = []
+
+        # -----------------------------
+        # VIEW permissions for allowed models only
+        # -----------------------------
+        view_models = [
+            Profile, Ad,
+            AdMedia, QRCode, QRScanLog, Notification
         ]
 
-        view_permissions = []
-        for model in all_models:
-            ct = ContentType.objects.get_for_model(model)
-            perm = Permission.objects.get(content_type=ct, codename=f"view_{model.__name__.lower()}")
-            view_permissions.append(perm)
+        for Model in view_models:
+            ct = ContentType.objects.get_for_model(Model)
+            allow.append(Permission.objects.get(
+                content_type=ct,
+                codename=f"view_{Model._meta.model_name}"
+            ))
 
-        admin_group.permissions.add(*view_permissions)
-
-        # ----- Profile: allow EDIT (change_profile) -----
+        # -----------------------------
+        # Profile editable
+        # -----------------------------
         pct = ContentType.objects.get_for_model(Profile)
-        change_profile = Permission.objects.get(content_type=pct, codename="change_profile")
-        admin_group.permissions.add(change_profile)
+        allow.append(Permission.objects.get(content_type=pct, codename="change_profile"))
 
-        # ----- QRCode: allow ADD only -----
+        # -----------------------------
+        # QRCode — allow add only
+        # -----------------------------
         qct = ContentType.objects.get_for_model(QRCode)
-        add_qr = Permission.objects.get(content_type=qct, codename="add_qrcode")
-        admin_group.permissions.add(add_qr)
+        allow.append(Permission.objects.get(content_type=qct, codename="add_qrcode"))
 
-        # ----- DONE -----
-        self.stdout.write(self.style.SUCCESS("Admin role created with correct permissions."))
+        # -----------------------------
+        # Notification — allow add only
+        # -----------------------------
+        nct = ContentType.objects.get_for_model(Notification)
+        allow.append(Permission.objects.get(content_type=nct, codename="add_notification"))
+
+        admin_group.permissions.set(allow)
+        admin_group.save()
+
+        self.stdout.write(self.style.SUCCESS("Admin role updated successfully"))
