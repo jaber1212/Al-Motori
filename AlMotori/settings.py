@@ -66,8 +66,11 @@ JAZZMIN_SETTINGS = {
     "site_brand": "Al-Motori",
     "welcome_sign": "Welcome to Al-Motori",
     "show_ui_builder": False,
-
-
+    "show_view_gear": True,
+    "hide_apps": [],
+    "hide_models": [],
+    "show_sidebar": True,
+    "navigation_expanded": True,
   "topmenu_links": [
         {"name": "Dashboard", "url": "/editor/dashboard/", "permissions": ["auth.view_user"]},
     ],

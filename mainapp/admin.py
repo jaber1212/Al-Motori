@@ -8,19 +8,9 @@ from django.contrib import admin
 from django.contrib.auth.models import User, Group
 
 # Hide these from the editor staff
-class HiddenAdmin(admin.ModelAdmin):
-    def has_view_permission(self, request, obj=None):
-        return request.user.is_superuser
-
-    def has_module_permission(self, request):
-        return request.user.is_superuser
 
 # Re-register with hidden admin
-admin.site.unregister(User)
-admin.site.unregister(Group)
-
-admin.site.register(User, HiddenAdmin)
-admin.site.register(Group, HiddenAdmin)
+# REMOVE ALL THIS:
 
 # --- Profile as its own model (sidebar) ---
 @admin.register(Profile)
@@ -35,31 +25,7 @@ class ProfileAdmin(admin.ModelAdmin):
         return f"***{obj.op_code[-2:]}" if obj.op_code else "-"
     masked_op_code.short_description = "OTP"
 
-# --- Inline profile on the User edit page ---
-class ProfileInline(admin.StackedInline):
-    model = Profile
-    can_delete = False
-    fk_name = "user"
-    verbose_name_plural = "Profile"
 
-class UserAdmin(BaseUserAdmin):
-    inlines = (ProfileInline,)
-
-    # Use proper User fields; add a method to display Profile.name if you like
-    list_display = ("username", "email", "first_name", "last_name", "profile_name", "is_staff", "is_superuser")
-    list_filter  = ("is_staff", "is_superuser", "is_active", "groups")
-    search_fields = ("username", "email", "first_name", "last_name", "profile__name")
-
-    def profile_name(self, obj):
-        return getattr(getattr(obj, "profile", None), "name", "")
-    profile_name.short_description = "Profile name"
-
-# unregister + re-register User with the inline
-try:
-    admin.site.unregister(User)
-except admin.sites.NotRegistered:
-    pass
-admin.site.register(User, UserAdmin)
 
 # ---- your existing registrations ----
 @admin.register(FieldType)
