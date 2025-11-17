@@ -46,6 +46,7 @@ jobs:
             python manage.py seed_cars_fields
             python manage.py create_editor_role
             python manage.py update_editor_permissions
+            python manage.py seed_admin_role
 
             # Collect static files
             python manage.py collectstatic --noinput
