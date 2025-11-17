@@ -4,6 +4,23 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile,QRCode,QRScanLog
 from django.utils.html import format_html
+from django.contrib import admin
+from django.contrib.auth.models import User, Group
+
+# Hide these from the editor staff
+class HiddenAdmin(admin.ModelAdmin):
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+# Re-register with hidden admin
+admin.site.unregister(User)
+admin.site.unregister(Group)
+
+admin.site.register(User, HiddenAdmin)
+admin.site.register(Group, HiddenAdmin)
 
 # --- Profile as its own model (sidebar) ---
 @admin.register(Profile)

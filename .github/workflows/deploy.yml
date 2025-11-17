@@ -44,6 +44,7 @@ jobs:
             python manage.py migrate --noinput
             python manage.py seed_field_types
             python manage.py seed_cars_fields
+            python manage.py create_editor_role
 
             # Collect static files
             python manage.py collectstatic --noinput
