@@ -117,44 +117,76 @@ def export_first_100_unassigned(modeladmin, request, queryset):
 from django.urls import path
 from django.shortcuts import redirect
 from django.contrib import messages
+from .views.stickerViews import generate_qr_sticker_sheet   # تأكد من مكان الفنكشن
 
 
 @admin.register(QRCode)
+@admin.register(QRCode)
 class QRCodeAdmin(admin.ModelAdmin):
-    list_display = ("code", "batch", "ad", "is_assigned", "is_activated", "scans_count", "last_scan_at", "public_link")
-    list_filter  = ("batch", "is_assigned", "is_activated")
+    list_display = (
+        "code", "batch", "ad",
+        "is_assigned", "is_activated",
+        "scans_count", "last_scan_at",
+        "public_link",
+    )
+    list_filter = ("batch", "is_assigned", "is_activated")
     search_fields = ("code", "batch", "ad__code")
     readonly_fields = ("public_link",)
 
+    # Actions
     actions = [create_and_export_qr_codes]
+    create_and_export_qr_codes.allowed_permissions = ('add',)
+
     actions_on_top = True
     actions_selection_counter = False
 
-    create_and_export_qr_codes.allowed_permissions = ('add',)
-
-    # important for custom button
+    # Important for custom top buttons
     change_list_template = "admin/qrcode_change_list.html"
 
+    #
+    # ------- CUSTOM ADMIN URLS --------
+    #
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
+
+            # 1. Generate new batch (Excel)
             path(
                 "generate-batch/",
                 self.admin_site.admin_view(self.generate_batch_view),
                 name="generate_qr_batch"
             ),
-        ]
-        return custom_urls + urls   # ✔ FIXED
 
+            # 2. Download Sticker Sheet (PDF)
+            path(
+                "stickers/<str:batch_name>/",
+                self.admin_site.admin_view(self.sticker_view),
+                name="qr_stickers"
+            ),
+        ]
+        return custom_urls + urls
+
+    #
+    # ------- VIEWS --------
+    #
     def generate_batch_view(self, request):
         new_qrs = create_qr_batch(count=100)
         messages.success(request, "تم إنشاء 100 QR جديدة بنجاح!")
-        return export_qr_excel_response(new_qrs, filename_prefix="qr-new-batch")  # ✔ FIXED
+        return export_qr_excel_response(new_qrs, filename_prefix="qr-new-batch")
 
+    def sticker_view(self, request, batch_name):
+        return generate_qr_sticker_sheet(request, batch_name)
+
+    #
+    # ------- DISPLAY FIELD --------
+    #
     @admin.display(description="Public URL")
     def public_link(self, obj):
-        return format_html('<a href="{}" target="_blank">{}</a>', obj.public_url, obj.public_path)
-
+        return format_html(
+            '<a href="{}" target="_blank">{}</a>',
+            obj.public_url,
+            obj.public_path,
+        )
 
 @admin.register(QRScanLog)
 class QRScanLogAdmin(admin.ModelAdmin):
@@ -234,21 +266,43 @@ from .models import QRCode
 
 # utils.py
 import uuid
+from datetime import datetime
 from .models import QRCode
+
 
 def generate_unique_qr_code():
     """Generate unique, non-duplicated QR code."""
     while True:
-        code = uuid.uuid4().hex[:10].upper()  # Example: F2A93C76B1
+        code = uuid.uuid4().hex[:10].upper()
         if not QRCode.objects.filter(code=code).exists():
             return code
 
 
-def create_qr_batch(count=100, batch_name=None):
-    """Create a clean batch of unique QR codes."""
-    if batch_name is None:
-        batch_name = f"batch-{uuid.uuid4().hex[:6]}"
+def create_qr_batch(count=100):
+    """Create a batch named by YYYY-MM-BATCH## with auto-increment."""
 
+    # 1. Get current month (YYYY-MM)
+    month_id = datetime.now().strftime("%Y-%m")
+
+    # 2. Count how many batches created in this month
+    existing_batches = QRCode.objects.filter(batch__startswith=month_id).values_list("batch", flat=True)
+
+    batch_number = 1
+    if existing_batches:
+        nums = []
+        for b in existing_batches:
+            # extract the last part "BATCHXX"
+            try:
+                num = int(b.split("BATCH")[-1])
+                nums.append(num)
+            except:
+                pass
+        if nums:
+            batch_number = max(nums) + 1
+
+    batch_name = f"{month_id}-BATCH{batch_number:02d}"
+
+    # 3. Create QR codes
     qr_list = []
 
     for _ in range(count):

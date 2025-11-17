@@ -3,10 +3,19 @@
 {% block object-tools %}
     <ul class="object-tools">
         {{ block.super }}
+
         <li>
             <a href="{% url 'admin:generate_qr_batch' %}" class="addlink">
                 Generate 100 QR Codes
             </a>
         </li>
+
+        {% if cl.queryset and cl.queryset.first.batch %}
+        <li>
+            <a href="{% url 'admin:qr_stickers' cl.queryset.first.batch %}" class="addlink">
+                Download Sticker Sheet
+            </a>
+        </li>
+        {% endif %}
     </ul>
 {% endblock %}
