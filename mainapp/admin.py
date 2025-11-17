@@ -97,10 +97,9 @@ from .helperUtilis.admin_utils import export_qr_excel_response
 
 @admin.action(description="Create NEW 100 QR Codes and Export")
 def create_and_export_qr_codes(modeladmin, request, queryset):
-    # 1. Create new unique batch of 100 QR codes
+    # Ignore queryset completely
     new_qrs = create_qr_batch(count=100)
 
-    # 2. Export ONLY the new batch to Excel
     return export_qr_excel_response(new_qrs, filename_prefix="qr-new-batch")
 
 
@@ -115,6 +114,9 @@ def export_first_100_unassigned(modeladmin, request, queryset):
     qs = QRCode.objects.filter(is_assigned=False).order_by("code")[:100]
     return export_qr_excel_response(qs, filename_prefix="qr-unassigned-top100")
 
+from django.urls import path
+from django.shortcuts import redirect
+from django.contrib import messages
 
 
 @admin.register(QRCode)
@@ -124,9 +126,30 @@ class QRCodeAdmin(admin.ModelAdmin):
     search_fields = ("code", "batch", "ad__code")
     readonly_fields = ("public_link",)
 
-    actions = [create_and_export_qr_codes]  # 👈 add it here
-    actions_on_top = True          # nice UX
+    actions = [create_and_export_qr_codes]
+    actions_on_top = True
     actions_selection_counter = False
+
+    create_and_export_qr_codes.allowed_permissions = ('add',)
+
+    # important for custom button
+    change_list_template = "admin/qrcode_change_list.html"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "generate-batch/",
+                self.admin_site.admin_view(self.generate_batch_view),
+                name="generate_qr_batch"
+            ),
+        ]
+        return custom_urls + urls   # ✔ FIXED
+
+    def generate_batch_view(self, request):
+        new_qrs = create_qr_batch(count=100)
+        messages.success(request, "تم إنشاء 100 QR جديدة بنجاح!")
+        return export_qr_excel_response(new_qrs, filename_prefix="qr-new-batch")  # ✔ FIXED
 
     @admin.display(description="Public URL")
     def public_link(self, obj):
