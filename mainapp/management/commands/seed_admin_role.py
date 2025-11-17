@@ -4,9 +4,8 @@ from django.contrib.contenttypes.models import ContentType
 
 from mainapp.models import (
     Profile, FieldType, AdCategory, FieldDefinition,
-    Ad, AdFieldValue, AdMedia, QRCode, QRScanLog
+    Ad, AdFieldValue, AdMedia, QRCode, QRScanLog,Notification
 )
-from notifications.models import Notification
 
 
 class Command(BaseCommand):
