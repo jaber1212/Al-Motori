@@ -60,23 +60,63 @@ INSTALLED_APPS = [
         'mainapp',   # 👈 add this
 
 ]
+
 JAZZMIN_SETTINGS = {
-    "site_title": "Al-Motori",
-    "site_header": "Al-Motori Admin",
-    "site_brand": "Al-Motori",
-    "welcome_sign": "Welcome to Al-Motori",
-    "show_ui_builder": False,
-    "show_view_gear": True,
-    "hide_apps": [],
-    "hide_models": [],
+    "site_title": "Al-Motori Admin",
+    "site_header": "Al-Motori",
+    "site_brand": "Al-Motori Dashboard",
+    "welcome_sign": "Welcome to Al-Motori Admin",
+    "copyright": "© 2025 Al-Motori",
+
+    # ==== Icons for each model ====
+    "icons": {
+        "mainapp.Ad": "fas fa-car",
+        "mainapp.Profile": "fas fa-user-circle",
+        "mainapp.QRCode": "fas fa-qrcode",
+        "mainapp.QRScanLog": "fas fa-history",
+        "mainapp.Notification": "fas fa-bell",
+
+        # Hidden from user but you can still style them
+        "mainapp.FieldType": "fas fa-tag",
+        "mainapp.FieldDefinition": "fas fa-list-alt",
+    },
+
+    # ==== App icons ====
+    "icons": {
+        "mainapp": "fas fa-folder-open",
+    },
+
+    # ==== Sidebar ====
     "show_sidebar": True,
     "navigation_expanded": True,
-  "topmenu_links": [
-        {"name": "Dashboard", "url": "/editor/dashboard/", "permissions": ["auth.view_user"]},
-    ],
 
+    # ==== Custom CSS if needed ====
+    "custom_css": "admin/custom.css",
+
+    # Sidebar menu ordering
+    "order_with_respect_to": ["mainapp"],
 }
-# 
+
+
+JAZZMIN_SETTINGS.update({
+    "custom_links": {
+        "mainapp": [{
+            "name": "Support",
+            "url": "mailto:support@aialmotori.com",
+            "icon": "fas fa-headset",
+            "permissions": ["auth.view_user"]
+        }],
+    },
+})
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "cosmo",  # Themes: cosmo, cyborg, darkly, flatly, journal, litera, lumen, lux, materia, minty, pulse, sandstone, simplex, sketchy, slate, solar, spacelab, superhero, united, yeti.
+    "navbar": "navbar-dark bg-primary",
+    "sidebar": "sidebar-dark-primary",
+    "footer_fixed": True,
+}
+
+#
 EDITOR_MAX_ADS = 200     # per staff/editor user
 EDITOR_MAX_IMAGES = 12  
 REST_FRAMEWORK = {
