@@ -17,10 +17,13 @@ class Command(BaseCommand):
         allow = []
 
         # -----------------------------
-        # 1 — View permissions for all Editor models
+        # 1 — View permissions for all Editor-accessible models
         # -----------------------------
-        models = [Ad, AdCategory, FieldDefinition,
-                  AdMedia, AdFieldValue, Profile, QRCode, User]
+        models = [
+            Ad, AdCategory, FieldDefinition,
+            AdMedia, AdFieldValue, Profile,
+            QRCode, User
+        ]
 
         for Model in models:
             ct = ContentType.objects.get_for_model(Model)
@@ -28,26 +31,28 @@ class Command(BaseCommand):
             try:
                 allow.append(Permission.objects.get(content_type=ct, codename=codename))
             except Permission.DoesNotExist:
-                print(f"Missing permission: {codename}")
+                self.stdout.write(self.style.WARNING(f"Missing permission: {codename}"))
 
         # -----------------------------
-        # 2 — Allow Editors to add/change Ads
+        # 2 — Allow add/change Ads only
         # -----------------------------
         ad_ct = ContentType.objects.get_for_model(Ad)
         for codename in ["add_ad", "change_ad"]:
             allow.append(Permission.objects.get(content_type=ad_ct, codename=codename))
 
         # -----------------------------
-        # 3 — Editors can update ONLY their own profile (admin logic enforces this)
+        # 3 — Allow Editors to update their own profile
+        # (admin logic restricts to OWN profile only)
         # -----------------------------
         profile_ct = ContentType.objects.get_for_model(Profile)
         allow.append(Permission.objects.get(content_type=profile_ct, codename="change_profile"))
 
         # -----------------------------
-        # 4 — No delete permissions
+        # 4 — No delete permissions added
         # -----------------------------
 
-        editor.permissions.set(list(set(allow)))  # remove duplicates
+        # Remove duplicates & assign
+        editor.permissions.set(list(set(allow)))
         editor.save()
 
         self.stdout.write(self.style.SUCCESS("Editor role permissions updated successfully!"))
