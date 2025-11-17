@@ -12,14 +12,14 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from dotenv import load_dotenv
 
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# load_dotenv(os.path.join(BASE_DIR, '.env'))
-#
-# ONESIGNAL_APP_ID = os.getenv("ONESIGNAL_APP_ID")
-# ONESIGNAL_API_KEY = os.getenv("ONESIGNAL_API_KEY")
-#
-# if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
-#     raise ValueError("❌ Missing OneSignal credentials in environment variables.")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
+ONESIGNAL_APP_ID = os.getenv("ONESIGNAL_APP_ID")
+ONESIGNAL_API_KEY = os.getenv("ONESIGNAL_API_KEY")
+
+if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
+    raise ValueError("❌ Missing OneSignal credentials in environment variables.")
 
 from pathlib import Path
 
@@ -176,25 +176,11 @@ WSGI_APPLICATION = 'AlMotori.wsgi.application'
 # settings.py
 import os
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": "motori",
-        "USER": "mj",
-        "PASSWORD": "g100g100Aa$$",
-        "HOST": "localhost",  # or your DB server/VPS IP
-        "PORT": "3306",
-        "OPTIONS": {
-            "charset": "utf8mb4",
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES', innodb_strict_mode=1",
-        },
-    }
-}
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.mysql",
-#         "NAME": "artlinew_Motori",
-#         "USER": "artlinew_Motori_Admin",
+#         "NAME": "motori",
+#         "USER": "mj",
 #         "PASSWORD": "g100g100Aa$$",
 #         "HOST": "localhost",  # or your DB server/VPS IP
 #         "PORT": "3306",
@@ -204,6 +190,20 @@ DATABASES = {
 #         },
 #     }
 # }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "artlinew_Motori",
+        "USER": "artlinew_Motori_Admin",
+        "PASSWORD": "g100g100Aa$$",
+        "HOST": "localhost",  # or your DB server/VPS IP
+        "PORT": "3306",
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES', innodb_strict_mode=1",
+        },
+    }
+}
 
 
 # Password validation
