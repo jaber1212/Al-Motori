@@ -52,21 +52,50 @@ class AdFieldValueInline(admin.TabularInline):
 class AdMediaInline(admin.TabularInline):
     model = AdMedia
     extra = 0
-    fields = ("kind", "order_index")   # 👈 removed "url"
-    readonly_fields = ()               # optional — leave empty
+    fields = ("kind", "order_index", "preview")   # ← أضفها هنا
+    readonly_fields = ("preview",)
+
+    def preview(self, obj):
+        if obj.url:
+            return format_html(
+                '<img src="{}" style="width:120px; height:auto; border-radius:6px;" />',
+                obj.url
+            )
+        return "-"
 
 @admin.register(Ad)
 class AdAdmin(admin.ModelAdmin):
-    list_display = ("code","title","status","owner","category","price","city","created_at")
+    list_display = (
+        "code", "title", "status", "owner",
+        "category", "price", "city", "created_at",
+        "ad_image_preview","qr_public_link"   # ← مهم جداً هنا داخل list_display
+    )
     list_filter  = ("status","category","city")
     search_fields= ("code","title","owner__username")
     inlines = [AdMediaInline, AdFieldValueInline]
+
+    @admin.display(description="Preview")
+    def ad_image_preview(self, obj):
+        media = obj.admedia_set.filter(kind="image").order_by("order_index").first()
+        if not media or not media.url:
+            return "-"
+        return format_html(
+            '<img src="{}" style="width:80px; height:auto; border-radius:6px;" />',
+            media.url
+        )
+
     @admin.display(description="QR Link")
     def qr_public_link(self, obj):
         q = getattr(obj, "qr_code", None)
         if not q:
             return "-"
-        return format_html('<a href="{}" target="_blank">{}</a>', q.public_url, q.public_path)
+        return format_html(
+            '<a href="{}" target="_blank">{}</a>',
+            q.public_url,
+            q.public_path,
+        )
+
+
 # admin.py
 
 # admin.py
