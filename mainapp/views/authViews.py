@@ -30,20 +30,17 @@ from mainapp.serializers.authSerializers import NotificationSerializer,ForgetPas
 # ---------------------------------
 # Helpers
 # ---------------------------------
+from rest_framework import serializers
+
 def normalize_phone_e164(raw_phone: str, default_region: str = "JO") -> str:
-    """
-    Normalize to E.164 (+XXXXXXXX) for WhatsApp. Default region JO (Jordan).
-    Requires 'phonenumbers' package.
-    """
     import phonenumbers
     try:
         num = phonenumbers.parse(str(raw_phone), default_region)
         if not phonenumbers.is_possible_number(num) or not phonenumbers.is_valid_number(num):
-            raise ValueError("Invalid phone number")
+            raise serializers.ValidationError("Invalid phone number.")
         return phonenumbers.format_number(num, phonenumbers.PhoneNumberFormat.E164)
-    except Exception as e:
-        # Let caller handle the message; here we just raise
-        raise ValueError(f"Invalid phone: {raw_phone}")
+    except Exception:
+        raise serializers.ValidationError(f"Invalid phone: {raw_phone}")
 
 def send_whatsapp_otp(to_e164: str, code: str, template_name: str = "ja_otp"):
     """
