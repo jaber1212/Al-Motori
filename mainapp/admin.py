@@ -76,7 +76,8 @@ class AdAdmin(admin.ModelAdmin):
 
     @admin.display(description="Preview")
     def ad_image_preview(self, obj):
-        media = obj.admedia_set.filter(kind="image").order_by("order_index").first()
+        # استخدم related_name="media"
+        media = obj.media.filter(kind="image").order_by("order_index").first()
         if not media or not media.url:
             return "-"
         return format_html(
