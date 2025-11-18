@@ -4,20 +4,37 @@
     <ul class="object-tools">
         {{ block.super }}
 
-        <!-- زر إنشاء 100 QR -->
         <li>
-            <a href="{% url 'admin:generate_qr_batch' %}" class="addlink">
+            <a href="{% url 'admin:generate_qr_batch' %}"
+               class="addlink myaction-btn">
                 📦 Generate 100 QR Codes
             </a>
         </li>
-
-        {% if cl.queryset and cl.queryset.first.batch %}
-        <!-- زر تحميل الملصقات -->
-        <li>
-            <a href="{% url 'admin:qr_stickers' cl.queryset.first.batch %}" class="addlink">
-                🖨️ Download Sticker Sheet
-            </a>
-        </li>
-        {% endif %}
     </ul>
 {% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* --- SAME as Django Admin blue filled button --- */
+    .object-tools .myaction-btn {
+        background-color: #0d6efd !important; /* Django Blue */
+        color: white !important;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-weight: 600;
+        display: inline-block;
+        border: 1px solid #0b5ed7;
+        transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .object-tools .myaction-btn:hover {
+        background-color: #0b5ed7 !important;
+        color: #fff !important;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+<!--            <a href="{% url 'admin:qr_stickers' cl.queryset.first.batch %}" class="addlink">-->
+<!--                🖨️ Download Sticker Sheet-->
+<!--            </a>-->

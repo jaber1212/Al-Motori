@@ -40,15 +40,17 @@ class Command(BaseCommand):
         # -----------------------------
         # QRCode — allow add only
         # -----------------------------
-        qct = ContentType.objects.get_for_model(QRCode)
-        allow.append(Permission.objects.get(content_type=qct, codename="add_qrcode"))
+        # qct = ContentType.objects.get_for_model(QRCode)
+        # allow.append(Permission.objects.get(content_type=qct, codename="add_qrcode"))
 
         # -----------------------------
         # Notification — allow add only
         # -----------------------------
         nct = ContentType.objects.get_for_model(Notification)
-        allow.append(Permission.objects.get(content_type=nct, codename="add_notification"))
-
+        allow.append(
+            Permission.objects.get(content_type=nct, codename="add_notification")
+        )
+        # We
         admin_group.permissions.set(allow)
         admin_group.save()
 
