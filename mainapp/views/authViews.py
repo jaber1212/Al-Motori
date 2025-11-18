@@ -39,11 +39,11 @@ def normalize_phone_e164(raw_phone: str, default_region: str = "JO") -> str:
     try:
         num = phonenumbers.parse(str(raw_phone), default_region)
         if not phonenumbers.is_possible_number(num) or not phonenumbers.is_valid_number(num):
-            raise api_err("Invalid phone number")
+            raise ValueError("Invalid phone number")
         return phonenumbers.format_number(num, phonenumbers.PhoneNumberFormat.E164)
     except Exception as e:
         # Let caller handle the message; here we just raise
-        raise api_err(f"Invalid phone: {raw_phone}")
+        raise ValueError(f"Invalid phone: {raw_phone}")
 
 def send_whatsapp_otp(to_e164: str, code: str, template_name: str = "ja_otp"):
     """
