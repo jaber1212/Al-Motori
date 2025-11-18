@@ -147,7 +147,7 @@ class ForgetPasswordSendOTPSerializer(serializers.Serializer):
         try:
             profile = Profile.objects.get(phone=phone)
         except Profile.DoesNotExist:
-            raise api_err("No account found with this phone number.", code="NO_ACCOUNT")
+            raise serializers.ValidationError("No account found with this phone number.", code="NO_ACCOUNT")
         attrs["profile"] = profile
         return attrs
 
@@ -172,10 +172,10 @@ class ForgetPasswordVerifySerializer(serializers.Serializer):
         try:
             profile = Profile.objects.get(phone=phone)
         except Profile.DoesNotExist:
-            raise api_err("No account found with this phone number.", code="NO_ACCOUNT")
+            raise serializers.ValidationError("No account found with this phone number.", code="NO_ACCOUNT")
 
         if not profile.op_code or profile.op_code != code:
-            raise api_err("Invalid or expired OTP.", code="BAD_OTP")
+            raise serializers.ValidationError("Invalid or expired OTP.", code="BAD_OTP")
 
         attrs["profile"] = profile
         return attrs
