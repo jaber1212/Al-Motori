@@ -39,19 +39,21 @@ jobs:
       # 5) Upload project files using rsync
       - name: Upload project via rsync
         run: |
-          rsync -az --delete \
-          --exclude="staticfiles" \
-          --exclude="media" \
-          --exclude="venv" \
-          --exclude=".git" \
-          --exclude=".github" \
-          --exclude="__pycache__" \
-          --exclude="*.pyc" \
-          -e "ssh -i ~/.ssh/ci_key -p ${{ secrets.PORT }}" \
-          ./ \
-          "${{ secrets.USER }}@${{ secrets.HOST }}:/home/aimotoria/htdocs/www.aimotoria.com/"
-          
-          # 6) Run deployment commands on server
+          rsync -avz --delete \
+            --exclude="staticfiles" \
+            --exclude="media" \
+            --exclude="venv" \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="__pycache__" \
+            --exclude="*.pyc" \
+            --exclude=".idea" \
+            -e "ssh -i ~/.ssh/ci_key -p ${{ secrets.PORT }}" \
+            ./ \
+            "${{ secrets.USER }}@${{ secrets.HOST }}:/home/aimotoria/htdocs/www.aimotoria.com/"
+
+
+        # 6) Run deployment commands on server
       - name: Deploy (Django + Gunicorn + Nginx)
         run: |
           ssh -T -i ~/.ssh/ci_key -p "${{ secrets.PORT }}" "${{ secrets.USER }}@${{ secrets.HOST }}" << 'EOF'
