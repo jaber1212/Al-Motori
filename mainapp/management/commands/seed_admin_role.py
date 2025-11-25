@@ -3,12 +3,11 @@ from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 
 from mainapp.models import (
-    Profile, Ad, AdCategory, AdFieldValue, AdMedia,
-    QRCode, QRScanLog,Notification
+    Profile, Ad, AdMedia, QRCode, QRScanLog, Notification
 )
 
 class Command(BaseCommand):
-    help = "Create Admin role with correct permissions"
+    help = "Create Admin role with safe permissions"
 
     def handle(self, *args, **kwargs):
 
@@ -16,42 +15,36 @@ class Command(BaseCommand):
 
         allow = []
 
-        # -----------------------------
-        # VIEW permissions for allowed models only
-        # -----------------------------
+        # ALLOWED VIEW MODELS
         view_models = [
-            Profile, Ad,
-            AdMedia, QRCode, QRScanLog, Notification
+            Profile, Ad, AdMedia,
+            QRCode, QRScanLog,
+            Notification
         ]
 
         for Model in view_models:
             ct = ContentType.objects.get_for_model(Model)
-            allow.append(Permission.objects.get(
-                content_type=ct,
-                codename=f"view_{Model._meta.model_name}"
-            ))
+            allow.append(
+                Permission.objects.get(
+                    content_type=ct,
+                    codename=f"view_{Model._meta.model_name}"
+                )
+            )
 
-        # -----------------------------
-        # Profile editable
-        # -----------------------------
+        # Allow change_profile only
         pct = ContentType.objects.get_for_model(Profile)
-        allow.append(Permission.objects.get(content_type=pct, codename="change_profile"))
+        allow.append(
+            Permission.objects.get(content_type=pct, codename="change_profile")
+        )
 
-        # -----------------------------
-        # QRCode — allow add only
-        # -----------------------------
-        # qct = ContentType.objects.get_for_model(QRCode)
-        # allow.append(Permission.objects.get(content_type=qct, codename="add_qrcode"))
-
-        # -----------------------------
-        # Notification — allow add only
-        # -----------------------------
+        # Allow add_notification
         nct = ContentType.objects.get_for_model(Notification)
         allow.append(
             Permission.objects.get(content_type=nct, codename="add_notification")
         )
-        # We
+
+        # Apply permissions
         admin_group.permissions.set(allow)
         admin_group.save()
 
-        self.stdout.write(self.style.SUCCESS("Admin role updated successfully"))
+        self.stdout.write(self.style.SUCCESS("Admin role fixed successfully"))
