@@ -7,10 +7,10 @@
         <li>
             <a href="{% url 'admin:generate_qr_batch' %}"
                class="addlink myaction-btn">
-          Generate 100 QR Code
+                📦 Generate 100 QR Codes
             </a>
         </li>
-
+    </ul>
 {% endblock %}
 
 {% block extrahead %}
@@ -35,3 +35,6 @@
     }
 </style>
 {% endblock %}
+<!--            <a href="{% url 'admin:qr_stickers' cl.queryset.first.batch %}" class="addlink">-->
+<!--                🖨️ Download Sticker Sheet-->
+<!--            </a>-->
