@@ -10,6 +10,9 @@
                 📦 Generate 100 QR Codes
             </a>
         </li>
+                    <a href="{% url 'admin:qr_stickers' cl.queryset.first.batch %}" class="addlink">
+                🖨️ Download Sticker Sheet
+            </a>
     </ul>
 {% endblock %}
 
@@ -35,6 +38,3 @@
     }
 </style>
 {% endblock %}
-<!--            <a href="{% url 'admin:qr_stickers' cl.queryset.first.batch %}" class="addlink">-->
-<!--                🖨️ Download Sticker Sheet-->
-<!--            </a>-->
