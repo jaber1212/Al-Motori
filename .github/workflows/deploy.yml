@@ -1,56 +1,89 @@
-name: SSH Auto Deployment to cPanel - Motori
+name: Deploy to VPS
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-# 
+
     steps:
-      - name: Checkout code
+      # 1) Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-# 
-      - name: Setup SSH Key
+
+      # 2) Write SSH private key from GitHub Secret
+      - name: Write private key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.PORT }} ${{ secrets.CPANEL_HOST }} >> ~/.ssh/known_hosts
+          umask 077
+          cat > ~/.ssh/ci_key << 'EOF'
+          ${{ secrets.SSH_KEY }}
+          EOF
+          chmod 600 ~/.ssh/ci_key
 
-      - name: Copy files to cPanel via SCP
+      # 3) Add VPS Host to known_hosts
+      - name: Add host to known_hosts
         run: |
-          scp -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.PORT }} \
-            ./* ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }}:/home/artlinew/Motori/
+          ssh-keyscan -T 15 -p "${{ secrets.PORT }}" "${{ secrets.HOST }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
-      - name: SSH and Run Django Setup
+      # 4) Test SSH connection
+      - name: Test SSH
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.PORT }} ${{ secrets.USER }}@${{ secrets.CPANEL_HOST }} "
-            set -e
+          ssh -i ~/.ssh/ci_key -p "${{ secrets.PORT }}" \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.USER }}@${{ secrets.HOST }}" "echo SSH OK && hostname"
 
-            # Navigate to project directory
-            cd /home/artlinew/Motori
+      # 5) Upload project files using rsync
+      - name: Upload project via rsync
+        run: |
+          rsync -az --delete \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="venv" \
+            --exclude="node_modules" \
+            -e "ssh -i ~/.ssh/ci_key -p ${{ secrets.PORT }}" \
+            ./ \
+            "${{ secrets.USER }}@${{ secrets.HOST }}:/home/aimotoria/htdocs/www.aimotoria.com/"
 
-            # Activate virtualenv (adjust Python version if needed)
-            source /home/artlinew/virtualenv/Motori/3.9/bin/activate
+      # 6) Run deployment commands on server
+      - name: Deploy (Django + Gunicorn + Nginx)
+        run: |
+          ssh -T -i ~/.ssh/ci_key -p "${{ secrets.PORT }}" "${{ secrets.USER }}@${{ secrets.HOST }}" << 'EOF'
+          
+          set -e
 
-            # Install dependencies
-            pip install -r requirements.txt
+          PROJECT="/home/aimotoria/htdocs/www.aimotoria.com"
+          cd "$PROJECT"
 
-            # Run Django migrations
-            python manage.py makemigrations
-            python manage.py migrate --noinput
-            python manage.py seed_field_types
-            python manage.py seed_cars_fields
-            python manage.py create_editor_role
-            python manage.py update_editor_permissions
-            python manage.py seed_admin_role
+          echo ">>> Activating virtual environment"
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+          fi
+          source venv/bin/activate
 
-            # Collect static files
-            python manage.py collectstatic --noinput
+          echo ">>> Installing dependencies"
+          pip install --upgrade pip
+          [ -f requirements.txt ] && pip install -r requirements.txt || true
 
-            # Restart Passenger (for Django on cPanel)
-            mkdir -p tmp && touch tmp/restart.txt
-          "
+          echo ">>> Running migrations"
+          python manage.py migrate --noinput
+
+          echo ">>> Running seeders"
+          python manage.py seed_field_types || true
+          python manage.py seed_cars_fields || true
+          python manage.py create_editor_role || true
+          python manage.py update_editor_permissions || true
+          python manage.py seed_admin_role || true
+
+          echo ">>> Collect static"
+          python manage.py collectstatic --noinput
+
+          echo ">>> Restarting Services"
+          sudo systemctl restart gunicorn-www.aimotoria.com
+          sudo systemctl restart nginx
+
+          echo ">>> Deployment completed successfully!"
+          EOF

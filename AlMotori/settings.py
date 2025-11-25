@@ -12,14 +12,14 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from dotenv import load_dotenv
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(os.path.join(BASE_DIR, '.env'))
-
-ONESIGNAL_APP_ID = os.getenv("ONESIGNAL_APP_ID")
-ONESIGNAL_API_KEY = os.getenv("ONESIGNAL_API_KEY")
-
-if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
-    raise ValueError("❌ Missing OneSignal credentials in environment variables.")
+# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# load_dotenv(os.path.join(BASE_DIR, '.env'))
+#
+# ONESIGNAL_APP_ID = os.getenv("ONESIGNAL_APP_ID")
+# ONESIGNAL_API_KEY = os.getenv("ONESIGNAL_API_KEY")
+#
+# if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
+#     raise ValueError("❌ Missing OneSignal credentials in environment variables.")
 
 from pathlib import Path
 
@@ -34,14 +34,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-xh-_=4%%$#c5@vv+i-ad+57j##$lcrp%)!-l6aknp_h*4%-z-2'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-# python manage.py 
-ALLOWED_HOSTS = ["motori.a.alce-qa.com", "www.motori.a.alce-qa.com","127.0.0.1"]
+# python manage.py
+ALLOWED_HOSTS = ["motori.a.alce-qa.com", "www.motori.a.alce-qa.com","127.0.0.1","www.aimotoria.com" ,"aimotoria.com" ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://motori.a.alce-qa.com",
-    "https://www.motori.a.alce-qa.com",
+    "https://aimotoria.com",
+    "https://www.aimotoria.com",
 ]
 
 # Application definition
@@ -190,18 +190,33 @@ import os
 #         },
 #     }
 # }
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": "artlinew_Motori",
+#         "USER": "artlinew_Motori_Admin",
+#         "PASSWORD": "g100g100Aa$$",
+#         "HOST": "localhost",  # or your DB server/VPS IP
+#         "PORT": "3306",
+#         "OPTIONS": {
+#             "charset": "utf8mb4",
+#             "init_command": "SET sql_mode='STRICT_TRANS_TABLES', innodb_strict_mode=1",
+#         },
+#     }
+# }
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "artlinew_Motori",
-        "USER": "artlinew_Motori_Admin",
-        "PASSWORD": "g100g100Aa$$",
-        "HOST": "localhost",  # or your DB server/VPS IP
+        "NAME": "aimotoria",
+        "USER": "aimotoria",
+        "PASSWORD": "g100g100Aa@@",
+        "HOST": "localhost",
         "PORT": "3306",
         "OPTIONS": {
-            "charset": "utf8mb4",
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES', innodb_strict_mode=1",
-        },
+                        "charset": "utf8mb4",
+                        "init_command": "SET sql_mode='STRICT_TRANS_TABLES', innodb_strict_mode=1",
+                    },
     }
 }
 
