@@ -15,7 +15,7 @@ class Command(BaseCommand):
         parser.add_argument("--batch", required=True, help="Batch label, e.g. OCT-2025")
         parser.add_argument("--count", type=int, default=100, help="How many codes")
         parser.add_argument("--outfile", default="qr_batch.csv", help="CSV output path")
-        parser.add_argument("--domain", default="https://motori.a.alce-qa.com", help="Public domain")
+        parser.add_argument("--domain", default="https://aimotoria.com", help="Public domain")
 
     def handle(self, *args, **opts):
         batch = opts["batch"]

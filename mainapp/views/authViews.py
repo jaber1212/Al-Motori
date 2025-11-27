@@ -141,6 +141,7 @@ class MeProfileView(APIView):
             "Logged in.",
             data={
                 "token": token.key,
+                "phone": "+96279150069",
                 "profile": ProfileSerializer(request.user.profile).data
             },
             code="ME_OK"

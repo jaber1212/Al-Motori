@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from mainapp.models import Ad
 from mainapp.models import QRCode, QRScanLog
 
-PUBLIC_BASE = "https://motori.a.alce-qa.com"  # edit to your domain
+PUBLIC_BASE = "https://aimotoria.com"  # edit to your domain
 
 from mainapp.utils import error_response, success_response  # your custom response helpers
 from django.shortcuts import get_object_or_404

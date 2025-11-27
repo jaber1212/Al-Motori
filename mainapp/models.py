@@ -178,7 +178,7 @@ class QRScanLog(models.Model):
 # core/utils.py  (create this if you don’t have it)
 from django.conf import settings
 from django.urls import reverse, NoReverseMatch
-PUBLIC_BASE_URL = "https://motori.a.alce-qa.com"   # or "" for relative links
+PUBLIC_BASE_URL = "https://aimotoria.com"   # or "" for relative links
 QR_URL_NAME = "qr_landing"
 def build_qr_public_path(code: str) -> str:
     """

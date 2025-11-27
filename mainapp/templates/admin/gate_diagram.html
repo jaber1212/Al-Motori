@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>8T08 Gate Management Diagram</h1>
+
+<div style="border:1px solid #ddd; padding:20px; background:white">
+    <!-- Put SVG diagram here -->
+    {{ diagram|safe }}
+</div>
+{% endblock %}
