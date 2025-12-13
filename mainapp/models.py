@@ -3,6 +3,7 @@ from django.db import models
 # Create your models here.
 from django.db import models
 from django.contrib.auth.models import User
+from rest_framework.exceptions import ValidationError, ErrorDetail
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
@@ -38,6 +39,58 @@ class AdCategory(models.Model):
     name_en = models.CharField(max_length=80)
     name_ar = models.CharField(max_length=80, blank=True, null=True)
     def __str__(self): return self.key
+
+class CarMake(models.Model):
+    name_en = models.CharField(max_length=120)
+    name_ar = models.CharField(max_length=120)
+    is_active = models.BooleanField(default=True)
+
+    def clean(self):
+        self.name_en = self.name_en.strip()
+        if CarMake.objects.exclude(pk=self.pk).filter(
+            name_en__iexact=self.name_en
+        ).exists():
+            raise ValidationError("Make already exists.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name_en
+
+
+
+from django.core.exceptions import ValidationError
+
+class CarModel(models.Model):
+    make = models.ForeignKey(
+        CarMake,
+        on_delete=models.CASCADE,
+        related_name="models"
+    )
+    name_en = models.CharField(max_length=120)
+    name_ar = models.CharField(max_length=120)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("make", "name_en")
+
+    def clean(self):
+        self.name_en = self.name_en.strip()
+        if CarModel.objects.exclude(pk=self.pk).filter(
+            make=self.make,
+            name_en__iexact=self.name_en
+        ).exists():
+            raise ValidationError("Model already exists for this make.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.make.name_en} - {self.name_en}"
+
 
 class FieldDefinition(models.Model):
     category = models.ForeignKey(AdCategory, on_delete=models.CASCADE, related_name='fields')

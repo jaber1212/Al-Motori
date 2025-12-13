@@ -101,3 +101,78 @@ def ok_list(message="OK", data=None, code="OK", http_status=http.HTTP_200_OK):
     if data is None: data = []
     # api_ok accepts lists fine; only default in api_ok is {}, but we override it
     return api_ok(message, data=data, code=code, http_status=http_status)
+
+
+
+
+from  .models import  AdCategory,FieldDefinition,CarModel,CarMake
+def normalize(value: str) -> str:
+    return value.lower().strip().replace(" ", "_")
+
+
+def sync_car_fields():
+    category = AdCategory.objects.get(key="cars")
+
+    make_field = FieldDefinition.objects.get(category=category, key="make")
+    model_field = FieldDefinition.objects.get(category=category, key="model")
+
+    # =========================
+    # MAKES
+    # =========================
+    make_choices = [{
+        "value": "other",
+        "label_en": "other",
+        "label_ar": "اخرى"
+    }]
+
+    makes = CarMake.objects.filter(is_active=True)
+
+    for make in makes:
+        value = normalize(make.name_en)
+        if value == "other":
+            continue
+
+        make_choices.append({
+            "value": value,
+            "label_en": make.name_en,
+            "label_ar": make.name_ar
+        })
+
+    make_field.choices = make_choices
+    make_field.save(update_fields=["choices"])
+
+    # =========================
+    # MODELS (PARENT / CHILD)
+    # =========================
+    model_choices = [{
+        "value": "other",
+        "label_en": "other",
+        "label_ar": "اخرى",
+        "parent_value": "other"
+    }]
+
+    seen = set()  # 🔒 منع التكرار
+
+    models = CarModel.objects.filter(
+        is_active=True,
+        make__is_active=True
+    ).select_related("make")
+
+    for model in models:
+        value = normalize(model.name_en)
+        parent_value = normalize(model.make.name_en)
+
+        key = (value, parent_value)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        model_choices.append({
+            "value": value,
+            "label_en": model.name_en,
+            "label_ar": model.name_ar,
+            "parent_value": parent_value
+        })
+
+    model_field.choices = model_choices
+    model_field.save(update_fields=["choices"])

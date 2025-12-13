@@ -205,6 +205,16 @@ import os
 #     }
 # }
 
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024     # 10 MB
+
+# Max single file size Django will handle in memory
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024      # 5 MB
+
+# Prevent malicious users from sending huge payloads
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
+
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",

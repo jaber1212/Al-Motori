@@ -498,14 +498,7 @@ class AdFormView(APIView):
                 "required": True,
                 "placeholder": "دينار" if locale == "ar" else "JOD",
                 "validation": {"minimum": 1}
-            },
-            {
-                "key": "city",
-                "type": "text",
-                "label": "المدينة" if locale == "ar" else "City",
-                "required": True,
-                "placeholder": "عمّان" if locale == "ar" else "Amman",
-            },
+            }
         ]
 
         mode = "create"
