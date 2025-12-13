@@ -43,6 +43,7 @@ class AdCategory(models.Model):
 class CarMake(models.Model):
     name_en = models.CharField(max_length=120)
     name_ar = models.CharField(max_length=120)
+    desc = models.CharField(max_length=120, blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
     def clean(self):
@@ -71,6 +72,8 @@ class CarModel(models.Model):
     )
     name_en = models.CharField(max_length=120)
     name_ar = models.CharField(max_length=120)
+    desc = models.CharField(max_length=120, blank=True, null=True)
+
     is_active = models.BooleanField(default=True)
 
     class Meta:
