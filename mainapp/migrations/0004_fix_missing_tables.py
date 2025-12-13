@@ -6,7 +6,7 @@ def create_missing_tables(apps, schema_editor):
 
     schema_editor.create_model(CarMake)
     schema_editor.create_model(CarModel)
-
+#
 class Migration(migrations.Migration):
 
     dependencies = [
