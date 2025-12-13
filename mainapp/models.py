@@ -9,7 +9,7 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     name = models.CharField(max_length=120)
     phone = models.CharField(max_length=20, unique=True)
-    email = models.EmailField(unique=True)  # ✅ added
+    email = models.EmailField(unique=True, blank=True, null=True)  # ✅ added
     
     is_verified = models.BooleanField(default=False)
     op_code = models.CharField(max_length=6, blank=True, null=True)
