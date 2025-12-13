@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile,QRCode,QRScanLog,CarModel,CarMake
+from .models import FieldType, AdCategory, FieldDefinition, Ad, AdFieldValue, AdMedia, Profile,QRCode,QRScanLog,CarModelS,CarMakeS
 from django.utils.html import format_html
 from django.contrib import admin
 from django.contrib.auth.models import User, Group
@@ -351,7 +351,7 @@ def create_qr_batch(count=100):
 
 
 
-@admin.register(CarMake)
+@admin.register(CarMakeS)
 class CarMakeAdmin(admin.ModelAdmin):
     list_display = ("name_en", "name_ar", "is_active")
     search_fields = ("name_en", "name_ar")
@@ -367,7 +367,7 @@ class CarMakeAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         sync_car_fields()
-@admin.register(CarModel)
+@admin.register(CarModelS)
 class CarModelAdmin(admin.ModelAdmin):
     list_display = ("name_en", "name_ar", "make", "is_active")
     list_filter = ("make", "is_active")

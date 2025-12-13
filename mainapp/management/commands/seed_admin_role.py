@@ -5,7 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from mainapp.models import (
     Profile, Ad, AdMedia,
     QRCode, QRScanLog, Notification,
-    CarMake, CarModel
+    CarMakeS, CarModelS
 )
 
 class Command(BaseCommand):
@@ -24,7 +24,7 @@ class Command(BaseCommand):
             Profile, Ad, AdMedia,
             QRCode, QRScanLog,
             Notification,
-            CarMake, CarModel
+            CarMakeS, CarModelS
         ]
 
         for Model in view_models:
@@ -62,7 +62,7 @@ class Command(BaseCommand):
         # MANAGE CarMake / CarModel
         # (add + change, no delete)
         # ----------------------------------
-        for Model in (CarMake, CarModel):
+        for Model in (CarMakeS, CarModelS):
             ct = ContentType.objects.get_for_model(Model)
             allow.extend([
                 Permission.objects.get(content_type=ct, codename=f"add_{Model._meta.model_name}"),

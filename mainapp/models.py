@@ -40,7 +40,7 @@ class AdCategory(models.Model):
     name_ar = models.CharField(max_length=80, blank=True, null=True)
     def __str__(self): return self.key
 
-class CarMake(models.Model):
+class CarMakeS(models.Model):
     name_en = models.CharField(max_length=120)
     name_ar = models.CharField(max_length=120)
     desc = models.CharField(max_length=120, blank=True, null=True)
@@ -48,7 +48,7 @@ class CarMake(models.Model):
 
     def clean(self):
         self.name_en = self.name_en.strip()
-        if CarMake.objects.exclude(pk=self.pk).filter(
+        if CarMakeS.objects.exclude(pk=self.pk).filter(
             name_en__iexact=self.name_en
         ).exists():
             raise ValidationError("Make already exists.")
@@ -64,9 +64,9 @@ class CarMake(models.Model):
 
 from django.core.exceptions import ValidationError
 
-class CarModel(models.Model):
+class CarModelS(models.Model):
     make = models.ForeignKey(
-        CarMake,
+        CarMakeS,
         on_delete=models.CASCADE,
         related_name="models"
     )
@@ -81,7 +81,7 @@ class CarModel(models.Model):
 
     def clean(self):
         self.name_en = self.name_en.strip()
-        if CarModel.objects.exclude(pk=self.pk).filter(
+        if CarModelS.objects.exclude(pk=self.pk).filter(
             make=self.make,
             name_en__iexact=self.name_en
         ).exists():

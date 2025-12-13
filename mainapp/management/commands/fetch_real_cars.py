@@ -3,8 +3,8 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from mainapp.models import (
-    CarMake,
-    CarModel,
+    CarMakeS,
+    CarModelS,
 )
 from mainapp.utils import sync_car_fields
 
@@ -47,7 +47,7 @@ class Command(BaseCommand):
         make_map = {}  # EN name -> CarMake instance
 
         for name in makes:
-            make, created = CarMake.objects.get_or_create(
+            make, created = CarMakeS.objects.get_or_create(
                 name_en=name,
                 defaults={
                     "name_ar": name,  # لاحقًا ممكن تعريب حقيقي
@@ -72,7 +72,7 @@ class Command(BaseCommand):
             for m in models:
                 model_name = m["Model_Name"].strip()
 
-                CarModel.objects.get_or_create(
+                CarModelS.objects.get_or_create(
                     make=make_obj,
                     name_en=model_name,
                     defaults={

@@ -105,7 +105,7 @@ def ok_list(message="OK", data=None, code="OK", http_status=http.HTTP_200_OK):
 
 
 
-from  .models import  AdCategory,FieldDefinition,CarModel,CarMake
+from  .models import  AdCategory,FieldDefinition,CarModelS,CarMakeS
 def normalize(value: str) -> str:
     return value.lower().strip().replace(" ", "_")
 
@@ -125,7 +125,7 @@ def sync_car_fields():
         "label_ar": "اخرى"
     }]
 
-    makes = CarMake.objects.filter(is_active=True)
+    makes = CarMakeS.objects.filter(is_active=True)
 
     for make in makes:
         value = normalize(make.name_en)
@@ -153,7 +153,7 @@ def sync_car_fields():
 
     seen = set()  # 🔒 منع التكرار
 
-    models = CarModel.objects.filter(
+    models = CarModelS.objects.filter(
         is_active=True,
         make__is_active=True
     ).select_related("make")
