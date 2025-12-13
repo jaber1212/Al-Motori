@@ -73,7 +73,8 @@ JAZZMIN_SETTINGS = {
         "mainapp": "fas fa-folder-open",
 
         "mainapp.Ad": "fas fa-car",
-        "mainapp.CarMake": "fas fa-industry",
+        "mainapp.CarMakeS": "fas fa-industry",
+        "mainapp.CarModelS": "fas fa-industry",
         "mainapp.Profile": "fas fa-user-circle",
         "mainapp.QRCode": "fas fa-qrcode",
         "mainapp.QRScanLog": "fas fa-history",
