@@ -73,6 +73,7 @@ JAZZMIN_SETTINGS = {
         "mainapp": "fas fa-folder-open",
 
         "mainapp.Ad": "fas fa-car",
+        "mainapp.CarMake": "fas fa-industry",
         "mainapp.Profile": "fas fa-user-circle",
         "mainapp.QRCode": "fas fa-qrcode",
         "mainapp.QRScanLog": "fas fa-history",
@@ -82,7 +83,6 @@ JAZZMIN_SETTINGS = {
         "mainapp.FieldType": "fas fa-tag",
         "mainapp.FieldDefinition": "fas fa-list-alt",
     },
-
     # ==== Sidebar ====
     "show_sidebar": True,
     "navigation_expanded": True,

@@ -89,3 +89,4 @@ class Command(BaseCommand):
         # -----------------------------
         sync_car_fields()
         self.stdout.write(self.style.SUCCESS("🎉 Car schema seeded and synced successfully"))
+#          python manage.py fetch_real_cars

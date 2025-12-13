@@ -82,7 +82,6 @@ jobs:
           python manage.py seed_cars_fields || true
           python manage.py seed_admin_role || true
           python manage.py qr_batch_generate || true
-          python manage.py fetch_real_cars
 
           echo ">>> Collect static"
           python manage.py collectstatic --noinput
