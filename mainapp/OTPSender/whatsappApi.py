@@ -2,7 +2,7 @@ import json, logging, time, requests
 from django.conf import settings
 
 
-WHATSAPP_PHONE_NUMBER_ID = "766561649880383"  # استبدله من الإعدادات إن شئت
+WHATSAPP_PHONE_NUMBER_ID = "885985071265943"  # استبدله من الإعدادات إن شئت
 GRAPH_URL = f"https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
 
 def send_whatsapp_template(
