@@ -274,6 +274,7 @@ class MyAdsListView(APIView):
         ads = (
             Ad.objects
             .filter(owner=user)
+            .exclude(status="archived")  # ✅ هنا
             .order_by("-created_at")
             .prefetch_related("values__field", "media")
         )
@@ -296,8 +297,10 @@ class MyAdsByTokenView(APIView):
         user = token.user
         qs = (Ad.objects
               .filter(owner=user)
+              .exclude(status="archived")  # ✅ هنا
               .order_by("-created_at")
-              .prefetch_related("values__field","media"))
+              .prefetch_related("values__field", "media"))
+
         data = AdDetailSerializer(qs, many=True).data
         return ok("Ads fetched", data=data)
 def require_body_id(request, field="ad_id"):
@@ -495,7 +498,7 @@ class AdFormView(APIView):
                 "key": "price",
                 "type": "currency",
                 "label": "السعر" if locale == "ar" else "Price",
-                "required": True,
+                "required": False,
                 "placeholder": "دينار" if locale == "ar" else "JOD",
                 "validation": {"minimum": 1}
             }
@@ -1190,39 +1193,48 @@ from mainapp.models import Ad, AdMedia, AdFieldValue
 # - or ?token= / body token
 # and returns a User or None
 # def _auth_user_from_request(request): ...
-
 @api_view(["POST"])
-@authentication_classes([])          # we authenticate manually via _auth_user_from_request
-@permission_classes([AllowAny])      # token is required, but DRF permission can stay open
+@authentication_classes([])
+@permission_classes([AllowAny])
 def delete_ad(request):
     """
+    Soft delete (archive) ad
     POST /api/ads/delete
-    Body/Headers:
-      - token: (header Authorization: Token <key> OR body/query param)
-      - ad_id: required (int)
     """
     user = _auth_user_from_request(request)
     if not user:
-        return Response({"status": False, "message": "Authentication required"}, status=http.HTTP_401_UNAUTHORIZED)
+        return Response(
+            {"status": False, "message": "Authentication required"},
+            status=http.HTTP_401_UNAUTHORIZED
+        )
 
     ad_id = request.data.get("ad_id") or request.query_params.get("ad_id")
     if not ad_id:
-        return Response({"status": False, "message": "ad_id is required"}, status=http.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"status": False, "message": "ad_id is required"},
+            status=http.HTTP_400_BAD_REQUEST
+        )
 
     try:
         ad_id = int(ad_id)
     except (TypeError, ValueError):
-        return Response({"status": False, "message": "ad_id must be an integer"}, status=http.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"status": False, "message": "ad_id must be an integer"},
+            status=http.HTTP_400_BAD_REQUEST
+        )
 
-    # Only delete if the ad exists and belongs to this user; otherwise 404 to avoid ID enumeration
     ad = Ad.objects.filter(id=ad_id, owner=user).first()
     if not ad:
-        return Response({"status": False, "message": "Ad not found"}, status=http.HTTP_404_NOT_FOUND)
+        return Response(
+            {"status": False, "message": "Ad not found"},
+            status=http.HTTP_404_NOT_FOUND
+        )
 
-    # If your FK relations are CASCADE, the next two lines are optional; they make the intent explicit.
-    with transaction.atomic():
-        AdMedia.objects.filter(ad=ad).delete()
-        AdFieldValue.objects.filter(ad=ad).delete()
-        ad.delete()
+    # 🔥 SOFT DELETE
+    ad.status = "archived"
+    ad.save(update_fields=["status"])
 
-    return Response({"status": True, "message": "Deleted"}, status=http.HTTP_200_OK)
+    return Response(
+        {"status": True, "message": "Ad Soft Delete successfully"},
+        status=http.HTTP_200_OK
+    )
