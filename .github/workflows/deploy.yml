@@ -77,11 +77,15 @@ jobs:
           python manage.py migrate --noinput
 
           echo ">>> Running seeders"
-#          python manage.py seed_field_types || true
-#          python manage.py seed_cars_schema || true
-#          python manage.py seed_cars_fields || true
-#          python manage.py seed_admin_role || true
-#          python manage.py qr_batch_generate || true
+          - name: Seed data (disabled)
+            if: false
+            run: |
+              python manage.py seed_field_types
+              python manage.py seed_cars_schema
+              python manage.py seed_cars_fields
+              python manage.py seed_admin_role
+              python manage.py qr_batch_generate
+
 
           echo ">>> Collect static"
           python manage.py collectstatic --noinput
