@@ -129,7 +129,11 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "mainapp.exception_handler.custom_exception_handler",
 
 }
-
+#          python manage.py seed_field_types || true
+#          python manage.py seed_cars_schema || true
+#          python manage.py seed_cars_fields || true
+#          python manage.py seed_admin_role || true
+#          python manage.py qr_batch_generate || true
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
