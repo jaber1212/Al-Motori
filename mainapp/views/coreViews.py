@@ -986,7 +986,7 @@ def ad_public_page_by_code(request, code: str):
     # Pull city from dynamic fields (NOT core anymore)
     # ---------------------------------
     city_value = ""
-    city_pair = best_values.pop("city", None)  # remove from dynamic
+    city_pair = best_values.pop("place", None)  # remove from dynamic
 
     if city_pair:
         fd, val = city_pair
