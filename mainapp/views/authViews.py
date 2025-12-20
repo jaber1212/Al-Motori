@@ -67,7 +67,6 @@ def logout(request):
         profile = Profile.objects.get(user=request.user)
         profile.player_id = None
         profile.save(update_fields=["player_id"])
-        Token.objects.filter(user=request.user).delete()
         return api_ok("Logout successful. Player ID cleared and token removed.", code="LOGOUT_OK")
     except Profile.DoesNotExist:
         return api_err("Profile not found.", code="PROFILE_NOT_FOUND")

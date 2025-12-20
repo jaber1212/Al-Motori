@@ -959,22 +959,21 @@ def ad_public_page_by_code(request, code: str):
             .filter(status="published")
             .select_related("category", "owner", "owner__profile")
             .prefetch_related(
-                Prefetch("values", queryset=AdFieldValue.objects.select_related("field", "field__type")),
-                Prefetch("media", queryset=AdMedia.objects.order_by("kind", "order_index", "id")),
+                Prefetch(
+                    "values",
+                    queryset=AdFieldValue.objects.select_related("field", "field__type")
+                ),
+                Prefetch(
+                    "media",
+                    queryset=AdMedia.objects.order_by("kind", "order_index", "id")
+                ),
             ),
         code=code
     )
 
-    core = [
-        {"key": "title", "label": "عنوان الاعلان" if lang == "ar" else "Title", "value": ad.title or ""},
-        {"key": "price", "label": "السعر" if lang == "ar" else "Price",
-         "value": (f"{ad.price:.2f}" if ad.price is not None else "")},
-        {"key": "city", "label": "المدينة" if lang == "ar" else "City", "value": ad.city or ""},
-        {"key": "code", "label": "رمز الإعلان" if lang == "ar" else "Ad Code", "value": ad.code},
-        {"key": "date", "label": "تاريخ النشر" if lang == "ar" else "Published",
-         "value": ad.published_at.strftime("%Y-%m-%d %H:%M") if ad.published_at else ""},
-    ]
-
+    # ---------------------------------
+    # Collect best dynamic values per key (language-aware)
+    # ---------------------------------
     best_values = {}
     for v in ad.values.all():
         if v.field.visible_public is False:
@@ -983,6 +982,51 @@ def ad_public_page_by_code(request, code: str):
         if v.locale == lang or k not in best_values:
             best_values[k] = (v.field, v.value)
 
+    # ---------------------------------
+    # Pull city from dynamic fields (NOT core anymore)
+    # ---------------------------------
+    city_value = ""
+    city_pair = best_values.pop("city", None)  # remove from dynamic
+
+    if city_pair:
+        fd, val = city_pair
+        city_value = _format_value(fd, val)
+
+    # ---------------------------------
+    # Core fields (city comes from dynamic)
+    # ---------------------------------
+    core = [
+        {
+            "key": "title",
+            "label": "عنوان الاعلان" if lang == "ar" else "Title",
+            "value": ad.title or "",
+        },
+        {
+            "key": "price",
+            "label": "السعر" if lang == "ar" else "Price",
+            "value": f"{ad.price:.2f}" if ad.price is not None else "",
+        },
+        {
+            "key": "place",
+            "label": "المدينة" if lang == "ar" else "City",
+            "value": city_value,
+        },
+        {
+            "key": "code",
+            "label": "رمز الإعلان" if lang == "ar" else "Ad Code",
+            "value": ad.code,
+        },
+        {
+            "key": "date",
+            "label": "تاريخ النشر" if lang == "ar" else "Published",
+            "value": ad.published_at.strftime("%Y-%m-%d %H:%M")
+                     if ad.published_at else "",
+        },
+    ]
+
+    # ---------------------------------
+    # Remaining dynamic fields (city excluded)
+    # ---------------------------------
     dynamic = []
     for k, (fd, val) in best_values.items():
         dynamic.append({
@@ -994,15 +1038,28 @@ def ad_public_page_by_code(request, code: str):
             "type": fd.type.key if fd.type else "text",
             "order_index": fd.order_index,
         })
+
     dynamic.sort(key=lambda x: (x["order_index"], x["key"]))
 
+    # ---------------------------------
+    # Media
+    # ---------------------------------
     images = [m.url for m in ad.media.all() if m.kind == AdMedia.IMAGE]
-    video = next((m.url for m in ad.media.all() if m.kind == AdMedia.VIDEO), None)
+    video = next(
+        (m.url for m in ad.media.all() if m.kind == AdMedia.VIDEO),
+        None
+    )
 
+    # ---------------------------------
+    # Phone number
+    # ---------------------------------
     phone_number = None
     if hasattr(ad, "owner") and hasattr(ad.owner, "profile"):
         phone_number = getattr(ad.owner.profile, "phone", None)
 
+    # ---------------------------------
+    # Context
+    # ---------------------------------
     context = {
         "lang": lang,
         "ad": ad,
@@ -1015,8 +1072,11 @@ def ad_public_page_by_code(request, code: str):
         "images": images,
         "video": video,
         "meta": {
-            "title": ad.title or (ad.category.name_ar if lang == "ar" else ad.category.name_en),
-            "description": f"{ad.city or ''} • {ad.price or ''}",
+            "title": ad.title or (
+                ad.category.name_ar if lang == "ar"
+                else ad.category.name_en
+            ),
+            "description": f"{city_value} • {ad.price or ''}",
             "image": images[0] if images else None,
             "url": request.build_absolute_uri(),
         },
