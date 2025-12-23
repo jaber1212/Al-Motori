@@ -144,6 +144,47 @@
       color:var(--text);
       white-space:pre-wrap;
     }
+.publish-hint {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: #f9fafb;
+  text-align: center;
+}
+
+.hint-text {
+  font-size: 15px;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.hint-btn {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hint-btn:hover {
+  background: var(--brand-hover);
+}
+.whatsapp-btn {
+  background: #25D366;
+  color: #fff;
+}
+
+.whatsapp-btn:hover {
+  background: #1ebe5d;
+}
+
+.whatsapp-btn .wa-icon {
+  font-size: 18px;
+}
 
     /* Specs grid */
     .specs {
@@ -305,6 +346,7 @@
         </div>
       </div>
       {% endif %}
+<!-- Publish App Hint -->
 
       <!-- Call Seller Button -->
         {% if phone %}
@@ -314,7 +356,36 @@
           </a>
         </div>
         {% endif %}
+{% if phone %}
+<div class="cta">
+  <a href="https://wa.me/{{ phone|cut:'+' }}" target="_blank" class="btn whatsapp-btn">
+    <span class="wa-icon">💬</span>
+    {% if lang == 'ar' %}
+      مراسلة عبر واتساب
+    {% else %}
+      Chat on WhatsApp
+    {% endif %}
+  </a>
+</div>
+{% endif %}
 
+<div class="publish-hint">
+  <p class="hint-text">
+    {% if lang == 'ar' %}
+      هل ترغب بنشر تطبيقك الآن؟
+    {% else %}
+      Do you want to publish your app?
+    {% endif %}
+  </p>
+
+  <button class="hint-btn" onclick="openStore()">
+    {% if lang == 'ar' %}
+      نعم، انتقل للمتجر
+    {% else %}
+      Yes, go to the store
+    {% endif %}
+  </button>
+</div>
 
       <!-- Seller Info -->
       <div class="seller">
@@ -367,6 +438,28 @@
         else showImage(src, btn);
       });
     })();
+
   </script>
+<script>
+  function openStore() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+
+    // iOS
+    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
+      window.location.href = "https://apps.apple.com/jo/app/motoria/id6754542282";
+      return;
+    }
+
+    // Android
+    if (/android/i.test(ua)) {
+      window.location.href = "https://play.google.com/store/apps/details?id=com.mj.motoria";
+      return;
+    }
+
+    // Fallback (desktop or unknown)
+    window.location.href = "https://apps.apple.com/jo/app/motoria/id6754542282";
+  }
+</script>
+
 </body>
 </html>
