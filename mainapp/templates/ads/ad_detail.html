@@ -174,12 +174,12 @@
   background: var(--brand-hover);
 }
 .whatsapp-btn {
-  background: #25D366;
-  color: #fff;
+  background: #25D366 !important; /* WhatsApp green */
+  color: #fff !important;
 }
 
 .whatsapp-btn:hover {
-  background: #1ebe5d;
+  background: #1ebe5d !important;
 }
 
 .whatsapp-btn .wa-icon {
@@ -323,6 +323,7 @@
           {% for f in core %}
             {% if f.value %}
               <div class="spec">
+
                 <p class="label">{{ f.label }}</p>
                 <p class="value">{{ f.value }}</p>
               </div>
@@ -331,21 +332,30 @@
         </div>
       </div>
 
-      {% if dynamic %}
-      <div class="section">
-        <h3>{% if lang == 'ar' %}تفاصيل إضافية{% else %}More Details{% endif %}</h3>
-        <div class="specs">
-          {% for f in dynamic %}
-            {% if f.value %}
-              <div class="spec">
-                <p class="label">{{ f.label }}</p>
-                <p class="value">{{ f.value }}</p>
-              </div>
-            {% endif %}
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
+{% if dynamic %}
+  <div class="section">
+    <h3>{% if lang == 'ar' %}تفاصيل إضافية{% else %}More Details{% endif %}</h3>
+
+    <div class="specs">
+      {% for f in dynamic %}
+        {% if f.value %}
+          <div class="spec">
+            <p class="label">{{ f.label }}</p>
+
+            <p class="value">
+              {% if f.key == "cars.description" %}
+                {{ f.value|lang_value:lang }}
+              {% else %}
+                {{ f.value }}
+              {% endif %}
+            </p>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
 <!-- Publish App Hint -->
 
       <!-- Call Seller Button -->
@@ -369,12 +379,13 @@
 </div>
 {% endif %}
 
+
 <div class="publish-hint">
   <p class="hint-text">
     {% if lang == 'ar' %}
-      هل ترغب بنشر تطبيقك الآن؟
+      هل ترغب بنشر اعلان مركبتك ؟
     {% else %}
-      Do you want to publish your app?
+      Do you want to publish your car Ads?
     {% endif %}
   </p>
 
