@@ -350,7 +350,7 @@
             <p class="label">{{ f.label }}</p>
 
             <p class="value">
-              {% if f.label == "description" %}
+              {% if f.key == "cars.description" %}
                 {{ f.value|lang_value:lang|linebreaksbr }}
               {% else %}
                 {{ f.value }}
