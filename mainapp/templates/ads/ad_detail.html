@@ -317,12 +317,12 @@
       </div>
 
       <!-- Description -->
-      {% if ad.description %}
-      <div class="section">
-        <h3>{% if lang == 'ar' %}الوصف{% else %}Description{% endif %}</h3>
-        <div class="desc">{{ ad.description|linebreaksbr }}</div>
-      </div>
-      {% endif %}
+<!--      {% if ad.description %}-->
+<!--      <div class="section">-->
+<!--        <h3>{% if lang == 'ar' %}الوصف{% else %}Description{% endif %}</h3>-->
+<!--        <div class="desc">{{ ad.description|linebreaksbr }}</div>-->
+<!--      </div>-->
+<!--      {% endif %}-->
 
       <!-- Specs -->
       <div class="section">
@@ -351,7 +351,7 @@
             <p class="label">{{ f.label }}</p>
 
             <p class="value">
-              {% if f.key == "ad.description" %}
+                {% if f.key == "cars.description" %}
                 {{ f.value|lang_value:lang }}
               {% else %}
                 {{ f.value }}
