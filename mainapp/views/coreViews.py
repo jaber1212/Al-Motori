@@ -1035,16 +1035,21 @@ def ad_public_page_by_code(request, code: str):
     # Remaining dynamic fields (city excluded)
     # ---------------------------------
     dynamic = []
-    for k, (fd, val) in best_values.items():
-        dynamic.append({
-            "key": k,
-            "label": _label(fd, lang),
-            "placeholder": _placeholder(fd, lang),
-            "value_raw": val,
-            "value": _format_value(fd, val, lang),
-            "type": fd.type.key if fd.type else "text",
-            "order_index": fd.order_index,
-        })
+    formatted_value = _format_value(fd, val, lang)
+
+    # description is multilingual JSON
+    if fd.key == "description":
+        formatted_value = _format_value(fd, val, lang)
+
+    dynamic.append({
+        "key": fd.key,  # <-- "description"
+        "label": _label(fd, lang),
+        "placeholder": _placeholder(fd, lang),
+        "value_raw": val,
+        "value": formatted_value,  # <-- resolved string
+        "type": fd.type.key if fd.type else "text",
+        "order_index": fd.order_index,
+    })
 
     dynamic.sort(key=lambda x: (x["order_index"], x["key"]))
 
