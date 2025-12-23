@@ -339,7 +339,6 @@
           {% endfor %}
         </div>
       </div>
-
 {% if dynamic %}
   <div class="section">
     <h3>{% if lang == 'ar' %}تفاصيل إضافية{% else %}More Details{% endif %}</h3>
@@ -351,19 +350,19 @@
             <p class="label">{{ f.label }}</p>
 
             <p class="value">
-                {% if f.key == "cars.description" %}
-                {{ f.value|lang_value:lang }}
+              {% if f.key == "cars.description" %}
+                {{ f.value|lang_value:lang|linebreaksbr }}
               {% else %}
                 {{ f.value }}
               {% endif %}
             </p>
+
           </div>
         {% endif %}
       {% endfor %}
     </div>
   </div>
 {% endif %}
-
 <!-- Publish App Hint -->
 
       <!-- Call Seller Button -->
