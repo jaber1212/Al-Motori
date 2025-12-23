@@ -1,4 +1,6 @@
 {% load static %}
+{% load lang_value %}
+
 <!DOCTYPE html>
 <html lang="{{ lang|default:'en' }}">
 <head>
@@ -256,7 +258,13 @@
   <div class="container">
     <!-- Topbar -->
     <div class="topbar">
-
+<div class="actions">
+  {% if lang == "ar" %}
+    <a class="btn-icon" href="?lang=en">🇬🇧 English</a>
+  {% else %}
+    <a class="btn-icon" href="?lang=ar">🇸🇦 عربي</a>
+  {% endif %}
+</div>
       <div class="actions">
         <a class="btn-icon" href="javascript:window.print()">🖨️ {% if lang == 'ar' %}طباعة{% else %}Print{% endif %}</a>
         <a class="btn-icon" href="{{ meta.url }}">🔗 {% if lang == 'ar' %}مشاركة{% else %}Share{% endif %}</a>
