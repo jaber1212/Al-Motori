@@ -348,19 +348,12 @@
         {% if f.value %}
           <div class="spec">
             <p class="label">{{ f.label }}</p>
-<p class="value">
-  {% if f.value|slice:":1" == "{" %}
-    {{ f.value|lang_value:lang|linebreaksbr }}
-  {% else %}
-    {{ f.value }}
-  {% endif %}
-</p>
 
-
-       <p class="values">
-                {{ f.key }}
-
+            <p class="value">
+       {{ f.value }}
             </p>
+
+
           </div>
         {% endif %}
       {% endfor %}
