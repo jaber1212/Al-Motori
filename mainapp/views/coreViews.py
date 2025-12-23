@@ -940,22 +940,42 @@ def _placeholder(fd: FieldDefinition, lang: str):
 
 import json
 
+import json
+
 def _format_value(fd, val, lang=None):
-    if not val:
+    """
+    Always return a SINGLE string value.
+    Supports multilingual JSON values like:
+    {"en": "...", "ar": "..."}
+    """
+
+    if val is None:
         return ""
 
-    # Handle multilingual JSON
+    # If already a dict (JSONField or parsed earlier)
+    if isinstance(val, dict):
+        if lang:
+            return str(val.get(lang) or val.get("en") or "")
+        return ""
+
+    # If string → try JSON
     if isinstance(val, str):
         v = val.strip()
-        if v.startswith("{") and v.endswith("}"):
-            try:
-                data = json.loads(v)
-                if isinstance(data, dict) and lang:
-                    return data.get(lang) or data.get("en") or ""
-            except Exception:
-                pass
 
-    return val
+        # Try parsing JSON safely
+        try:
+            data = json.loads(v)
+            if isinstance(data, dict):
+                if lang:
+                    return str(data.get(lang) or data.get("en") or "")
+                return ""
+        except Exception:
+            # Not JSON → return as normal text
+            return v
+
+    # Fallback: return string version
+    return str(val)
+
 
 # coreViews.py
 def ad_public_page_by_code(request, code: str):
@@ -1035,21 +1055,16 @@ def ad_public_page_by_code(request, code: str):
     # Remaining dynamic fields (city excluded)
     # ---------------------------------
     dynamic = []
-    formatted_value = _format_value(fd, val, lang)
-
-    # description is multilingual JSON
-    if fd.key == "description":
-        formatted_value = _format_value(fd, val, lang)
-
-    dynamic.append({
-        "key": fd.key,  # <-- "description"
-        "label": _label(fd, lang),
-        "placeholder": _placeholder(fd, lang),
-        "value_raw": val,
-        "value": formatted_value,  # <-- resolved string
-        "type": fd.type.key if fd.type else "text",
-        "order_index": fd.order_index,
-    })
+    for k, (fd, val) in best_values.items():
+        dynamic.append({
+            "key": k,
+            "label": _label(fd, lang),
+            "placeholder": _placeholder(fd, lang),
+            "value_raw": val,
+            "value": _format_value(fd, val, lang),
+            "type": fd.type.key if fd.type else "text",
+            "order_index": fd.order_index,
+        })
 
     dynamic.sort(key=lambda x: (x["order_index"], x["key"]))
 
