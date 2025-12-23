@@ -938,17 +938,24 @@ def _label(fd: FieldDefinition, lang: str):
 def _placeholder(fd: FieldDefinition, lang: str):
     return (fd.placeholder_ar or fd.placeholder_en) if lang == "ar" else (fd.placeholder_en or fd.placeholder_ar or "")
 
-def _format_value(fd: FieldDefinition, value):
-    """
-    Convert JSON 'value' to a nice string for display. You can enhance per type.
-    """
-    if value is None:
+import json
+
+def _format_value(fd, val, lang=None):
+    if not val:
         return ""
-    t = fd.type.key if fd.type else "text"
-    if t in ("multiselect",):
-        if isinstance(value, list):
-            return ", ".join([str(v) for v in value])
-    return str(value)
+
+    # Handle multilingual JSON
+    if isinstance(val, str):
+        v = val.strip()
+        if v.startswith("{") and v.endswith("}"):
+            try:
+                data = json.loads(v)
+                if isinstance(data, dict) and lang:
+                    return data.get(lang) or data.get("en") or ""
+            except Exception:
+                pass
+
+    return val
 
 # coreViews.py
 def ad_public_page_by_code(request, code: str):
@@ -990,7 +997,7 @@ def ad_public_page_by_code(request, code: str):
 
     if city_pair:
         fd, val = city_pair
-        city_value = _format_value(fd, val)
+        city_value = _format_value(fd, val, lang)
 
     # ---------------------------------
     # Core fields (city comes from dynamic)
@@ -1034,7 +1041,7 @@ def ad_public_page_by_code(request, code: str):
             "label": _label(fd, lang),
             "placeholder": _placeholder(fd, lang),
             "value_raw": val,
-            "value": _format_value(fd, val),
+            "value": _format_value(fd, val, lang),
             "type": fd.type.key if fd.type else "text",
             "order_index": fd.order_index,
         })
