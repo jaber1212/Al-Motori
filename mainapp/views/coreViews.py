@@ -115,7 +115,7 @@ class CreateAdView(APIView):
 
         # --- Build payload ---
         payload = {}
-        for k in ("category", "title", "price", "values", "images", "video"):
+        for k in ("category", "title", "price", "city", "values", "images", "video"):
             if k in data:
                 payload[k] = data[k]
 
@@ -127,7 +127,7 @@ class CreateAdView(APIView):
                 return error_response("Invalid 'values' JSON")
 
         # --- ✅ Core field validation ---
-        core_required = ["title", "price"]
+        core_required = ["title", "price", "city"]
         missing = []
 
         for field in core_required:
@@ -199,7 +199,7 @@ class UpdateAdView(APIView):
 
         # 3) serializer payload (exclude files)
         payload = {}
-        for k in ("title", "price", "values", "images", "video"):
+        for k in ("title", "price", "city", "values", "images", "video"):
             if k in data:
                 payload[k] = data[k]
 
@@ -501,6 +501,13 @@ class AdFormView(APIView):
                 "required": False,
                 "placeholder": "دينار" if locale == "ar" else "JOD",
                 "validation": {"minimum": 1}
+            },
+            {
+                "key": "city",
+                "type": "text",
+                "label": "المدينة" if locale == "ar" else "city",
+                "required": True,
+                "placeholder": "المدينة" if locale == "ar" else "city",
             }
         ]
 
@@ -533,7 +540,7 @@ class AdFormView(APIView):
             core_map = {
                 "title": ad.title,
                 "price": ad.price,
-
+                "city": ad.city,
                 "isPublick": (ad.status == "published"),
             }
             for cf in core_fields:
@@ -582,7 +589,7 @@ class AdFormView(APIView):
 
         # Build payload: keep known fields; 'values' may need parsing
         payload = {}
-        for k in ("category", "title", "price", "values", "images", "video"):
+        for k in ("category", "title", "price", "city", "values", "images", "video"):
             if k in data:
                 payload[k] = data[k]
 
@@ -1012,14 +1019,8 @@ def ad_public_page_by_code(request, code: str):
     # ---------------------------------
     # Pull city from dynamic fields (NOT core anymore)
     # ---------------------------------
-    city_value = ""
-    city_pair = best_values.pop("place", None)  # remove from dynamic
+    city_value = ad.city or ""
 
-    if city_pair:
-        fd, val = city_pair
-        city_value = _format_value(fd, val, lang)
-
-    # ---------------------------------
     # Core fields (city comes from dynamic)
     # ---------------------------------
     core = [
