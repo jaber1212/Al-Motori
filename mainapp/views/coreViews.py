@@ -115,7 +115,7 @@ class CreateAdView(APIView):
 
         # --- Build payload ---
         payload = {}
-        for k in ("category", "title", "price", "city", "values", "images", "video"):
+        for k in ("category", "title", "price", "values", "images", "video"):
             if k in data:
                 payload[k] = data[k]
 
@@ -127,7 +127,7 @@ class CreateAdView(APIView):
                 return error_response("Invalid 'values' JSON")
 
         # --- ✅ Core field validation ---
-        core_required = ["title", "price", "city"]
+        core_required = ["title", "price"]
         missing = []
 
         for field in core_required:
@@ -199,7 +199,7 @@ class UpdateAdView(APIView):
 
         # 3) serializer payload (exclude files)
         payload = {}
-        for k in ("title", "price", "city", "values", "images", "video"):
+        for k in ("title", "price", "values", "images", "video"):
             if k in data:
                 payload[k] = data[k]
 
@@ -533,7 +533,7 @@ class AdFormView(APIView):
             core_map = {
                 "title": ad.title,
                 "price": ad.price,
-                "city": ad.city,
+
                 "isPublick": (ad.status == "published"),
             }
             for cf in core_fields:
@@ -582,7 +582,7 @@ class AdFormView(APIView):
 
         # Build payload: keep known fields; 'values' may need parsing
         payload = {}
-        for k in ("category", "title", "price", "city", "values", "images", "video"):
+        for k in ("category", "title", "price", "values", "images", "video"):
             if k in data:
                 payload[k] = data[k]
 
