@@ -15,6 +15,13 @@ from django.core.files.storage import default_storage
 
 def generate_qr_image(data, code):
 
+    file_name = f"qr_{code}.png"
+    path = f"qr/images/{file_name}"
+
+    # ✅ If already exists — return directly
+    if default_storage.exists(path):
+        return default_storage.url(path), None
+
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_H,
@@ -30,9 +37,6 @@ def generate_qr_image(data, code):
     buffer = BytesIO()
     img.save(buffer, format="PNG")
 
-    file_name = f"qr_{code}.png"
-    path = f"qr/images/{file_name}"
-
     default_storage.save(path, ContentFile(buffer.getvalue()))
 
     return default_storage.url(path), img
@@ -41,6 +45,10 @@ def generate_qr_pdf(qr_image, code):
 
     file_name = f"qr_{code}.pdf"
     path = f"qr/pdf/{file_name}"
+
+    # ✅ If already exists — return directly
+    if default_storage.exists(path):
+        return default_storage.url(path)
 
     buffer = BytesIO()
 

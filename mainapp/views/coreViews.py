@@ -641,6 +641,9 @@ class AdFormView(APIView):
 
             mode = "edit"
             ad_hint = {"ad_id": ad.id, "code": ad.code}
+        is_direct = True
+        if is_direct:
+            publish_data = publish_ad_direct(ad, request)
 
         payload = {
             "status": True,
@@ -653,6 +656,11 @@ class AdFormView(APIView):
                 "dynamic_fields": dynamic,
                 "submit": submit,
                 "ad": ad_hint  # present only for edit
+                ,"publish": {
+                    "link": publish_data.get("link"),
+                    "qr_code": publish_data.get("qr_code"),
+                    "pdf": publish_data.get("pdf")
+                }
             }
         }
         return Response(payload, status=200)
@@ -757,6 +765,20 @@ class AdFormView(APIView):
                 ad.save(update_fields=["status", "published_at"])
         # If None -> user did not touch it; keep current status
 
+        is_direct = True
+
+        if is_direct:
+            publish_data = publish_ad_direct(ad, request)
+
+            return Response({
+                "status": True,
+                "message": "Ad created and published",
+                "data": {
+                    "ad": AdDetailSerializer(ad).data,
+                    **publish_data
+                }
+            }, status=201)
+
         return Response({
             "status": True,
             "message": "Saved",
@@ -765,6 +787,9 @@ class AdFormView(APIView):
                 "isPublick": (ad.status == "published")
             }
         }, status=200)
+
+
+
 
 def first_error_message(detail):
     if isinstance(detail, dict):
