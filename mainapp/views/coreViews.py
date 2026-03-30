@@ -59,7 +59,7 @@ from rest_framework.exceptions import ValidationError
 # from .utils import _auth_user_from_request, _save_upload  # your helpers
 
 
-
+from  mainapp.helperUtilis.generate_qr_image import generate_qr_image,generate_qr_pdf
 
 
 def home(request):
@@ -126,15 +126,29 @@ def publish_ad_direct(ad, request):
     ad.published_at = timezone.now()
     ad.save(update_fields=["status", "published_at"])
 
+    # Generate URLs
     public_url = f"{PUBLIC_BASE}/ads/{ad.code}"
     qr_url = f"{PUBLIC_BASE}/qr/{qr.code}"
+
+    # Generate QR Image (1024x1024)
+    qr_image_url = generate_qr_image(
+        data=public_url,
+        file_name=f"qr_{qr.code}.png"
+    )
+
+    # Generate PDF
+    pdf_url = generate_qr_pdf(
+        qr_image_url=qr_image_url,
+        file_name=f"qr_{qr.code}.pdf"
+    )
 
     return {
         "public_url": public_url,
         "qr_url": qr_url,
-        "qr_code": qr.code
+        "qr_code": qr.code,
+        "qr_image": qr_image_url,
+        "qr_pdf": pdf_url
     }
-
 class CreateAdView(APIView):
     """
     POST /api/ads/create
