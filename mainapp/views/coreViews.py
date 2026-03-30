@@ -336,34 +336,47 @@ class UpdateAdView(APIView):
         return ok("Ad updated successfully")
 
 class MyAdsListView(APIView):
-    permission_classes = [permissions.AllowAny]  # since we authenticate manually
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # 1️⃣ Read token from body
+
         token_key = request.data.get("token")
 
         if not token_key:
             return error_response("Token is required")
 
-        # 2️⃣ Verify token and get user
         try:
             token = Token.objects.get(key=token_key)
             user = token.user
         except Token.DoesNotExist:
             return error_response("Invalid or expired token")
 
-        # 3️⃣ Get all ads for this user
         ads = (
             Ad.objects
             .filter(owner=user)
-            .exclude(status="archived")  # ✅ هنا
+            .exclude(status="archived")
             .order_by("-created_at")
             .prefetch_related("values__field", "media")
         )
 
-        # 4️⃣ Serialize and return
-        serializer = AdDetailSerializer(ads, many=True)
-        return success_responseArray("Ads fetched", data=serializer.data)
+        data = []
+
+        for ad in ads:
+            ad_data = AdDetailSerializer(ad).data
+
+            publish_data = {}
+
+            # Only for published ads
+            if ad.status == "published":
+                publish_data = publish_ad_direct(ad, request)
+
+            ad_data["publish"] = publish_data
+
+            data.append(ad_data)
+
+        return success_responseArray("Ads fetched", data=data)
+
+
 
 class MyAdsByTokenView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -596,7 +609,7 @@ class AdFormView(APIView):
         mode = "create"
         ad_hint = {}
         submit = {"method": "POST", "url": "/api/ads/form"}
-        publish_data = {}
+
         # --- Edit mode only if ad_id present and owned by user ---
         if ad_id:
             if not user:
@@ -608,9 +621,6 @@ class AdFormView(APIView):
                 ),
                 id=ad_id, owner=user, category=cat
             )
-            is_direct = True
-            if is_direct:
-             publish_data = publish_ad_direct(ad, request)
 
             # Append isPublick ONLY in edit mode
             # core_fields.append({
@@ -645,9 +655,6 @@ class AdFormView(APIView):
             mode = "edit"
             ad_hint = {"ad_id": ad.id, "code": ad.code}
 
-            publish_data = {}
-
-
         payload = {
             "status": True,
             "message": "Form schema",
@@ -659,12 +666,8 @@ class AdFormView(APIView):
                 "dynamic_fields": dynamic,
                 "submit": submit,
                 "ad": ad_hint  # present only for edit
-                ,"publish": {
-                    **publish_data
-                }
             }
         }
-
         return Response(payload, status=200)
 
     # ---------- POST: create or edit (same body shape) ----------
