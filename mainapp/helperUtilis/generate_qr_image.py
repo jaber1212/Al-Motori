@@ -7,6 +7,11 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 
+import qrcode
+from io import BytesIO
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+
 
 def generate_qr_image(data, code):
 
@@ -30,10 +35,9 @@ def generate_qr_image(data, code):
 
     default_storage.save(path, ContentFile(buffer.getvalue()))
 
-    return default_storage.url(path), buffer
+    return default_storage.url(path), img
 
-
-def generate_qr_pdf(qr_buffer, code):
+def generate_qr_pdf(qr_image, code):
 
     file_name = f"qr_{code}.pdf"
     path = f"qr/pdf/{file_name}"
@@ -45,7 +49,7 @@ def generate_qr_pdf(qr_buffer, code):
     size = 120 * mm
 
     c.drawInlineImage(
-        qr_buffer,
+        qr_image,
         50 * mm,
         120 * mm,
         size,
