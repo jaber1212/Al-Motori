@@ -596,7 +596,7 @@ class AdFormView(APIView):
         mode = "create"
         ad_hint = {}
         submit = {"method": "POST", "url": "/api/ads/form"}
-
+        publish_data = {}
         # --- Edit mode only if ad_id present and owned by user ---
         if ad_id:
             if not user:
@@ -608,6 +608,9 @@ class AdFormView(APIView):
                 ),
                 id=ad_id, owner=user, category=cat
             )
+            is_direct = True
+            if is_direct:
+             publish_data = publish_ad_direct(ad, request)
 
             # Append isPublick ONLY in edit mode
             # core_fields.append({
@@ -641,9 +644,9 @@ class AdFormView(APIView):
 
             mode = "edit"
             ad_hint = {"ad_id": ad.id, "code": ad.code}
-        is_direct = True
-        if is_direct:
-            publish_data = publish_ad_direct(ad, request)
+
+            publish_data = {}
+
 
         payload = {
             "status": True,
@@ -657,12 +660,11 @@ class AdFormView(APIView):
                 "submit": submit,
                 "ad": ad_hint  # present only for edit
                 ,"publish": {
-                    "link": publish_data.get("link"),
-                    "qr_code": publish_data.get("qr_code"),
-                    "pdf": publish_data.get("pdf")
+                    **publish_data
                 }
             }
         }
+
         return Response(payload, status=200)
 
     # ---------- POST: create or edit (same body shape) ----------
