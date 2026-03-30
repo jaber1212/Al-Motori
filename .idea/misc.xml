@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.13 (AlMotori)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13 (AlMotori)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 virtualenv at ~/hr_system/venv" project-jdk-type="Python SDK" />
 </project>

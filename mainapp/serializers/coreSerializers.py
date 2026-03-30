@@ -57,8 +57,13 @@ class AdCreateSerializer(serializers.Serializer):
     category = serializers.SlugRelatedField(slug_field="key", queryset=AdCategory.objects.all())
     title    = serializers.CharField(max_length=200, required=False, allow_blank=True)
     price    = serializers.DecimalField(required=False, allow_null=True, max_digits=12, decimal_places=2)
-    city     = serializers.CharField(max_length=100, required=False, allow_blank=True)
 
+    city = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        allow_null=True
+    )
     # If client POSTs hosted media (no file uploads)
     images = serializers.ListField(child=serializers.URLField(), required=False, allow_empty=True)
     video  = serializers.URLField(required=False, allow_blank=True, allow_null=True)
@@ -166,14 +171,14 @@ class AdCreateSerializer(serializers.Serializer):
 class AdUpdateSerializer(serializers.Serializer):
     title  = serializers.CharField(max_length=200, required=False, allow_blank=True)
     price  = serializers.DecimalField(required=False, allow_null=True, max_digits=12, decimal_places=2)
-    city   = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    city   = serializers.CharField(max_length=100, required=False, allow_blank=True,allow_null=True)
     images = serializers.ListField(child=serializers.URLField(), required=False)
     video  = serializers.URLField(required=False, allow_blank=True, allow_null=True)
     values = serializers.DictField(child=serializers.JSONField(), required=False)
 
     def update(self, ad: Ad, validated):
         # Core
-        for f in ("title", "price", "city"):
+        for f in ("title", "price","city"):
             if f in validated:
                 setattr(ad, f, validated[f])
         ad.save()

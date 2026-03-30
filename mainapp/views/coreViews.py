@@ -32,15 +32,39 @@ from rest_framework.views import APIView
 from rest_framework import permissions
 from rest_framework.authtoken.models import Token
 from mainapp.models import Ad
+import json, os, uuid
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from mainapp.utils import success_responseArray
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+from rest_framework.exceptions import ValidationError, ErrorDetail
+from rest_framework.authtoken.models import Token
+from mainapp.utils import first_error_message,success_response,error_response
+from mainapp.models import Ad, AdCategory, AdMedia, FieldDefinition, AdFieldValue
+# views_ads_media.py
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from django.db.models import Count, Q
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework import permissions, status
+from rest_framework.exceptions import ValidationError
+
+# from .models import Ad, AdMedia  # <- make sure these exist
+# from .serializers import AdDetailSerializer  # optional for GET return
+# from .utils import _auth_user_from_request, _save_upload  # your helpers
+
+
+
+
 
 def home(request):
     return HttpResponse("Hello from Main App 🚀")
 
-from mainapp.utils import success_responseArray
-
-
-
-from mainapp.utils import first_error_message,success_response,error_response
 
 
 def _save_upload(file_obj, subdir="ads"):
@@ -49,12 +73,6 @@ def _save_upload(file_obj, subdir="ads"):
     rel_path = os.path.join(subdir, safe_name)
     default_storage.save(rel_path, ContentFile(file_obj.read()))
     return default_storage.url(rel_path)
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, permissions
-from rest_framework.exceptions import ValidationError, ErrorDetail
-from rest_framework.authtoken.models import Token
 
 
 
@@ -68,7 +86,6 @@ from rest_framework.authtoken.models import Token
 # ===== Ads Behaviors (GET/POST only) =====
 
 
-from mainapp.models import Ad, AdCategory, AdMedia, FieldDefinition, AdFieldValue
 
 MAX_IMAGES = 12
 
@@ -79,17 +96,45 @@ class CategorySchemaView(APIView):
         return Response(CategorySchemaSerializer(cat).data)
 
 # coreViews.py
-import json, os, uuid
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
-def _save_upload(file_obj, subdir="ads"):
-    name, ext = os.path.splitext(file_obj.name)
-    safe_name = f"{uuid.uuid4().hex[:12]}{ext}"
-    rel_path = os.path.join(subdir, safe_name)
-    default_storage.save(rel_path, ContentFile(file_obj.read()))
-    return default_storage.url(rel_path)
+
+
+
+
+def _gen_code(prefix="QR"):
+    return f"{prefix}{uuid.uuid4().hex[:8].upper()}"
+
+def publish_ad_direct(ad, request):
+    # Check if QR exists
+    qr = QRCode.objects.filter(ad=ad).first()
+
+    # Create QR if needed
+    if not qr:
+        qr = QRCode.objects.create(
+            code=_gen_code("QR"),
+            ad=ad,
+            is_assigned=True,
+            is_activated=True
+        )
+    else:
+        qr.is_assigned = True
+        qr.is_activated = True
+        qr.save(update_fields=["is_assigned", "is_activated"])
+
+    # Publish ad
+    ad.status = "published"
+    ad.published_at = timezone.now()
+    ad.save(update_fields=["status", "published_at"])
+
+    public_url = f"{PUBLIC_BASE}/ads/{ad.code}"
+    qr_url = f"{PUBLIC_BASE}/qr/{qr.code}"
+
+    return {
+        "public_url": public_url,
+        "qr_url": qr_url,
+        "qr_code": qr.code
+    }
+
 class CreateAdView(APIView):
     """
     POST /api/ads/create
@@ -127,7 +172,7 @@ class CreateAdView(APIView):
                 return error_response("Invalid 'values' JSON")
 
         # --- ✅ Core field validation ---
-        core_required = ["title", "price", "city"]
+        core_required = ["title"]
         missing = []
 
         for field in core_required:
@@ -172,8 +217,32 @@ class CreateAdView(APIView):
         if not video_file and isinstance(payload.get("video"), str) and payload["video"]:
             ad.media.filter(kind=AdMedia.VIDEO).delete()
             AdMedia.objects.create(ad=ad, kind=AdMedia.VIDEO, url=payload["video"], order_index=0)
+        is_direct = True
 
-        return Response({"status": True, "ad": AdDetailSerializer(ad).data}, status=201)
+        if is_direct:
+            publish_data = publish_ad_direct(ad, request)
+
+            return Response({
+                "status": True,
+                "message": "Ad created and published",
+                "data": {
+                    "ad": AdDetailSerializer(ad).data,
+                    **publish_data
+                }
+            }, status=201)
+
+        return Response({
+            "status": True,
+            "message": "Ad created",
+            "data": {
+                "ad": AdDetailSerializer(ad).data
+            }
+        }, status=201)
+
+
+
+
+
 
 class UpdateAdView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -506,7 +575,7 @@ class AdFormView(APIView):
                 "key": "city",
                 "type": "text",
                 "label": "المدينة" if locale == "ar" else "city",
-                "required": True,
+                "required": False,
                 "placeholder": "المدينة" if locale == "ar" else "city",
             }
         ]
@@ -693,19 +762,7 @@ def first_error_message(detail):
         return str(detail)
     return str(detail)
 
-# views_ads_media.py
-from django.shortcuts import get_object_or_404
-from django.db import transaction
-from django.db.models import Count, Q
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework import permissions, status
-from rest_framework.exceptions import ValidationError
 
-# from .models import Ad, AdMedia  # <- make sure these exist
-# from .serializers import AdDetailSerializer  # optional for GET return
-# from .utils import _auth_user_from_request, _save_upload  # your helpers
 
 class AdMediaView(APIView):
     """
