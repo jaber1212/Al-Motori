@@ -366,17 +366,34 @@ class MyAdsListView(APIView):
 
             publish_data = {}
 
-            # Only for published ads
             if ad.status == "published":
-                publish_data = publish_ad_direct(ad, request)
+                publish_data = get_publish_links(ad)
 
             ad_data["publish"] = publish_data
 
             data.append(ad_data)
-
         return success_responseArray("Ads fetched", data=data)
 
+def get_publish_links(ad):
 
+    qr = QRCode.objects.filter(ad=ad).first()
+
+    if not qr:
+        return {}
+
+    public_url = f"{PUBLIC_BASE}/ads/{ad.code}"
+    qr_url = f"{PUBLIC_BASE}/qr/{qr.code}"
+
+    qr_image_url = f"{PUBLIC_BASE}/media/qr/images/qr_{qr.code}.png"
+    pdf_url = f"{PUBLIC_BASE}/media/qr/pdf/qr_{qr.code}.pdf"
+
+    return {
+        "public_url": public_url,
+        "qr_url": qr_url,
+        "qr_code": qr.code,
+        "qr_image": qr_image_url,
+        "qr_pdf": pdf_url
+    }
 
 class MyAdsByTokenView(APIView):
     permission_classes = [permissions.AllowAny]
