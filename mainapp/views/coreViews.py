@@ -131,15 +131,14 @@ def publish_ad_direct(ad, request):
     qr_url = f"{PUBLIC_BASE}/qr/{qr.code}"
 
     # Generate QR Image (1024x1024)
-    qr_image_url = generate_qr_image(
+    qr_image_url, qr_buffer = generate_qr_image(
         data=public_url,
-        file_name=f"qr_{qr.code}.png"
+        code=qr.code
     )
-
     # Generate PDF
     pdf_url = generate_qr_pdf(
-        qr_image_url=qr_image_url,
-        file_name=f"qr_{qr.code}.pdf"
+        qr_buffer=qr_buffer,
+        code=qr.code
     )
 
     return {
