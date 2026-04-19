@@ -116,7 +116,22 @@ def publish_ad_direct(ad, request):
             is_assigned=True,
             is_activated=True
         )
+
+        # ✅ Generate files ONLY once
+        public_url = f"{PUBLIC_BASE}/ads/{ad.code}"
+
+        qr_image_url, qr_img = generate_qr_image(
+            data=public_url,
+            code=qr.code
+        )
+
+        generate_qr_pdf(
+            qr_img,
+            code=qr.code
+        )
+
     else:
+        # Ensure flags
         qr.is_assigned = True
         qr.is_activated = True
         qr.save(update_fields=["is_assigned", "is_activated"])
@@ -126,28 +141,10 @@ def publish_ad_direct(ad, request):
     ad.published_at = timezone.now()
     ad.save(update_fields=["status", "published_at"])
 
-    # Generate URLs
-    public_url = f"{PUBLIC_BASE}/ads/{ad.code}"
-    qr_url = f"{PUBLIC_BASE}/qr/{qr.code}"
+    # ✅ IMPORTANT: always return unified links
+    return get_publish_links(ad)
 
-    # Generate QR Image (1024x1024)
-    qr_image_url, qr_img = generate_qr_image(
-        data=public_url,
-        code=qr.code
-    )
 
-    pdf_url = generate_qr_pdf(
-        qr_img,
-        code=qr.code
-    )
-
-    return {
-        "public_url": public_url,
-        "qr_url": qr_url,
-        "qr_code": qr.code,
-        "qr_image": qr_image_url,
-        "qr_pdf": pdf_url
-    }
 class CreateAdView(APIView):
     """
     POST /api/ads/create
