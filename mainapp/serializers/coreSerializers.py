@@ -74,14 +74,15 @@ class AdCreateSerializer(serializers.Serializer):
     def validate(self, data):
         # Dynamic fields validation
         category = data["category"]
-        defs = {f.key: f for f in FieldDefinition.objects.filter(category=category)}
+        defs = {f.key.lower(): f for f in FieldDefinition.objects.filter(category=category)}
         values = data.get("values") or {}
+        values_lower = {k.lower(): v for k, v in values.items()}
 
-        missing = [k for k, fd in defs.items() if fd.required and k not in values]
+        missing = [k for k, fd in defs.items() if fd.required and k not in values_lower]
         if missing:
             raise serializers.ValidationError({"values": f"Missing required fields: {', '.join(missing)}"})
 
-        for k, v in values.items():
+        for k, v in values_lower.items():
             fd = defs.get(k)
             if not fd:
                 raise serializers.ValidationError({"values": f"Unknown field '{k}'."})
@@ -132,11 +133,8 @@ class AdCreateSerializer(serializers.Serializer):
         # inside AdCreateSerializer
         values = validated.get("values") or {}
         if values:
-            defs = {f.key: f for f in FieldDefinition.objects.filter(category=category)}
-            AdFieldValue.objects.bulk_create([
-                AdFieldValue(ad=ad, field=defs[k], value=v) for k, v in values.items()
-                if k in defs
-            ])
+            defs = {f.key.lower(): f for f in FieldDefinition.objects.filter(category=category)}
+
 
             to_create = []
             for key, val in values.items():
@@ -192,7 +190,7 @@ class AdUpdateSerializer(serializers.Serializer):
                 fd = defs.get(key.lower())
                 if not fd:
                     continue
-                if key in existing:
+                if key.lower() in existing:
                     ev = existing[key.lower()]
                     ev.value = val
                     to_update.append(ev)
