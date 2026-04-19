@@ -185,7 +185,7 @@ class AdUpdateSerializer(serializers.Serializer):
 
         # Dynamic
         if "values" in validated:
-            existing = {v.field.key: v for v in ad.values.select_related("field")}
+            existing = {v.field.key.lower(): v for v in ad.values.select_related("field")}
             defs = {f.key.lower(): f for f in FieldDefinition.objects.filter(category=ad.category)}
             to_create, to_update = [], []
             for key, val in (validated["values"] or {}).items():
@@ -193,7 +193,7 @@ class AdUpdateSerializer(serializers.Serializer):
                 if not fd:
                     continue
                 if key in existing:
-                    ev = existing[key]
+                    ev = existing[key.lower()]
                     ev.value = val
                     to_update.append(ev)
                 else:
