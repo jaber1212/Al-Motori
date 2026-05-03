@@ -7,11 +7,6 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 
-import qrcode
-from io import BytesIO
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-
 
 def generate_qr_image(data, code):
 
@@ -32,7 +27,26 @@ def generate_qr_image(data, code):
     qr.add_data(data)
     qr.make(fit=True)
 
-    img = qr.make_image(fill_color="black", back_color="white")
+    img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+    # ✅ Add center logo
+    try:
+        from PIL import Image
+
+        logo_path = "static/logo.png"  # adjust path if needed
+        logo = Image.open(logo_path)
+
+        # Resize logo (20% of QR size)
+        qr_width, qr_height = img.size
+        logo_size = int(qr_width * 0.2)
+        logo = logo.resize((logo_size, logo_size))
+
+        # Calculate position
+        pos = ((qr_width - logo_size) // 2, (qr_height - logo_size) // 2)
+
+        img.paste(logo, pos, mask=logo if logo.mode == 'RGBA' else None)
+    except Exception as e:
+        print("Logo not added:", e)
 
     buffer = BytesIO()
     img.save(buffer, format="PNG")
@@ -63,6 +77,10 @@ def generate_qr_pdf(qr_image, code):
         size,
         size
     )
+
+    # ✅ Add branding text
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(50 * mm, 100 * mm, "Powered by Ai Motoria")
 
     c.setFont("Helvetica", 12)
     c.drawString(50 * mm, 110 * mm, f"Code: {code}")
