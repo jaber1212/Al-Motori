@@ -6,8 +6,9 @@ from django.core.files.storage import default_storage
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+from django.conf import settings
 
-
+import os
 def generate_qr_image(data, code):
 
     file_name = f"qr_{code}.png"
@@ -33,7 +34,8 @@ def generate_qr_image(data, code):
     try:
         from PIL import Image
 
-        logo_path = "static/logo.png"  # adjust path if needed
+        logo_path = os.path.join(settings.BASE_DIR, "assets/logo.png")
+
         logo = Image.open(logo_path)
 
         # Resize logo (20% of QR size)
