@@ -1,4 +1,3 @@
-
 import qrcode
 from io import BytesIO
 from django.core.files.base import ContentFile
@@ -14,7 +13,7 @@ def generate_qr_image(data, code):
     file_name = f"qr_{code}.png"
     path = f"qr/images/{file_name}"
 
-    # ✅ If already exists — return directly
+    # ⚠️ IMPORTANT: disable this during testing if needed
     if default_storage.exists(path):
         return default_storage.url(path), None
 
@@ -30,30 +29,47 @@ def generate_qr_image(data, code):
 
     img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
-    # ✅ Add center logo
+    # =========================
+    # ✅ Add center circular logo
+    # =========================
     try:
-        from PIL import Image
+        from PIL import Image, ImageDraw
 
-
-
+        # 🔹 Get static file correctly (production-safe)
         logo_path = finders.find("logo.png")
 
         if not logo_path:
             raise Exception("Logo NOT FOUND in static files")
-        logo = Image.open(logo_path)
 
-        # Resize logo (20% of QR size)
+        logo = Image.open(logo_path).convert("RGBA")
+
+        # 🔹 Resize logo (smaller for better scanning)
         qr_width, qr_height = img.size
-        logo_size = int(qr_width * 0.2)
+        logo_size = int(qr_width * 0.18)   # reduced from 0.2
+
         logo = logo.resize((logo_size, logo_size))
 
-        # Calculate position
+        # 🔹 Create circular mask
+        mask = Image.new("L", (logo_size, logo_size), 0)
+        draw = ImageDraw.Draw(mask)
+        draw.ellipse((0, 0, logo_size, logo_size), fill=255)
+
+        # 🔹 Add white background (improves scan reliability)
+        white_bg = Image.new("RGBA", (logo_size, logo_size), (255, 255, 255, 255))
+        white_bg.paste(logo, (0, 0), mask=logo)
+
+        # 🔹 Center position
         pos = ((qr_width - logo_size) // 2, (qr_height - logo_size) // 2)
 
-        img.paste(logo, pos, mask=logo if logo.mode == 'RGBA' else None)
-    except Exception as e:
-        print("Logo not added:", e)
+        # 🔹 Paste final logo
+        img.paste(white_bg, pos, mask=mask)
 
+    except Exception as e:
+        print("❌ Logo not added:", e)
+
+    # =========================
+    # Save QR
+    # =========================
     buffer = BytesIO()
     img.save(buffer, format="PNG")
 
@@ -61,12 +77,12 @@ def generate_qr_image(data, code):
 
     return default_storage.url(path), img
 
+
 def generate_qr_pdf(qr_image, code):
 
     file_name = f"qr_{code}.pdf"
     path = f"qr/pdf/{file_name}"
 
-    # ✅ If already exists — return directly
     if default_storage.exists(path):
         return default_storage.url(path)
 
@@ -84,7 +100,7 @@ def generate_qr_pdf(qr_image, code):
         size
     )
 
-    # ✅ Add branding text
+    # ✅ Branding text
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50 * mm, 100 * mm, "Powered by Ai Motoria")
 
