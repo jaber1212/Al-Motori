@@ -104,8 +104,6 @@ def generate_qr_pdf(qr_image, code):
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50 * mm, 100 * mm, "Powered by Ai Motoria")
 
-    c.setFont("Helvetica", 12)
-    c.drawString(50 * mm, 110 * mm, f"Code: {code}")
 
     c.save()
 
